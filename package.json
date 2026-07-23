@@ -1,0 +1,9 @@
+{
+  "name": "company-screener",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Upload a company list and auto-screen for status, website, phone, and email using Claude + web search.",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
