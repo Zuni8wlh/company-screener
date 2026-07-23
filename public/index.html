@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Company Screener</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #faf9f7;
+    color: #1c1917;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+  .eyebrow {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #78716c; font-weight: 600; margin-bottom: 8px;
+  }
+  h1 { font-size: 32px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: #78716c; font-size: 15px; margin-top: 8px; max-width: 560px; line-height: 1.5; }
+  .dropzone {
+    border: 1.5px dashed #c2410c; border-radius: 10px; padding: 28px;
+    text-align: center; background: #fff; margin: 24px 0; cursor: pointer;
+  }
+  .dropzone.has-file { border-style: solid; border-color: #d6d3d1; }
+  .dropzone strong { display: block; font-size: 14px; font-weight: 600; margin-top: 8px; }
+  .dropzone span { font-size: 12px; color: #a8a29e; }
+  input[type=file] { display: none; }
+  .error-box {
+    background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #b91c1c;
+  }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+  .toolbar .count { font-size: 13px; color: #78716c; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 7px; padding: 9px 16px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; border: 1px solid #d6d3d1; background: #fff; color: #1c1917;
+  }
+  .btn-primary { background: #c2410c; color: #fff; border: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+  thead tr { background: #f5f5f4; text-align: left; }
+  th { padding: 10px 14px; font-weight: 600; color: #57534e; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e7e5e4; }
+  td { padding: 10px 14px; border-bottom: 1px solid #f0efed; vertical-align: top; }
+  .table-card { border: 1px solid #e7e5e4; border-radius: 10px; overflow: hidden; }
+  .mono { font-family: monospace; font-size: 12px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
+  .foot-note { font-size: 11.5px; color: #a8a29e; margin-top: 14px; line-height: 1.5; }
+  a { color: #c2410c; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">🏢 Company Screener</div>
+  <h1>Upload list, temukan kontaknya</h1>
+  <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email.</p>
+
+  <label class="dropzone" id="dropzone" for="file-input">
+    <div style="font-size:22px;">⬆</div>
+    <strong id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</strong>
+    <span>Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</span>
+  </label>
+  <input type="file" id="file-input" accept=".csv" />
+
+  <div id="error-box" class="error-box" style="display:none;"></div>
+
+  <div id="content" style="display:none;">
+    <div class="toolbar">
+      <div class="count" id="count-text"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" id="run-btn">▶ Mulai screening</button>
+        <button class="btn" id="export-btn" style="display:none;">⬇ Export CSV</button>
+      </div>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <p class="foot-note">Hasil dari pencarian web otomatis — akurasi tidak 100%, terutama untuk company kecil/lokal tanpa website resmi. Selalu verifikasi manual sebelum dipakai untuk outreach.</p>
+  </div>
+</div>
+
+<script>
+const STATUS_STYLES = {
+  active:    { label: "Active",    color: "#15803d", bg: "#f0fdf4" },
+  unclear:   { label: "Unclear",   color: "#b45309", bg: "#fffbeb" },
+  not_found: { label: "Not found", color: "#b91c1c", bg: "#fef2f2" },
+  error:     { label: "Error",     color: "#6b7280", bg: "#f9fafb" },
+  pending:   { label: "Waiting",   color: "#9ca3af", bg: "#f9fafb" },
+  running:   { label: "Searching", color: "#c2410c", bg: "#fff7ed" },
+};
+
+let companies = [];
+let results = {};
+let running = false;
+
+const dropzone = document.getElementById("dropzone");
+const dropzoneText = document.getElementById("dropzone-text");
+const fileInput = document.getElementById("file-input");
+const errorBox = document.getElementById("error-box");
+const content = document.getElementById("content");
+const countText = document.getElementById("count-text");
+const runBtn = document.getElementById("run-btn");
+const exportBtn = document.getElementById("export-btn");
+const tableBody = document.getElementById("table-body");
+
+fileInput.addEventListener("change", (e) => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+dropzone.addEventListener("dragover", (e) => e.preventDefault());
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  errorBox.style.display = "none";
+  dropzoneText.textContent = file.name;
+  dropzone.classList.add("has-file");
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (res) => {
+      companies = extractCompanyList(res.data);
+      if (!companies.length) {
+        showError("Tidak ada nama company yang terbaca. Pastikan ada kolom 'company' atau 'nama'.");
+        return;
+      }
+      results = {};
+      content.style.display = "block";
+      exportBtn.style.display = "none";
+      renderTable();
+      countText.textContent = companies.length + " company terbaca";
+    },
+    error: (err) => showError(err.message),
+  });
+}
+
+function extractCompanyList(rows) {
+  if (!rows.length) return [];
+  const keys = Object.keys(rows[0]);
+  const nameKey = keys.find((k) => /^(company|nama|name|perusahaan)/i.test(k.trim())) || keys[0];
+  const countryKey = keys.find((k) => /(country|negara)/i.test(k.trim()));
+  return rows
+    .map((r) => ({
+      name: (r[nameKey] || "").toString().trim(),
+      country: countryKey ? (r[countryKey] || "").toString().trim() : "",
+    }))
+    .filter((r) => r.name.length > 0);
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.style.display = "block";
+}
+
+function renderTable() {
+  tableBody.innerHTML = companies.map((c) => {
+    const r = results[c.name] || { status: "idle" };
+    const style = STATUS_STYLES[r.status] || { label: "—", color: "#9ca3af", bg: "#f9fafb" };
+    const icon = r.status === "running" ? '<span class="spin">↻</span>' :
+                 r.status === "active" ? "✓" :
+                 (r.status === "not_found" || r.status === "error") ? "✕" : "";
+    return `<tr>
+      <td style="font-weight:600;">${escapeHtml(c.name)}</td>
+      <td><span class="badge" style="background:${style.bg};color:${style.color};">${icon} ${style.label}</span></td>
+      <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
+      <td class="mono">${escapeHtml(r.phone || "—")}</td>
+      <td class="mono">${escapeHtml(r.email || "—")}</td>
+      <td style="color:#78716c;font-size:12px;">${escapeHtml(r.notes || "")}</td>
+    </tr>`;
+  }).join("");
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+function escapeAttr(str) { return escapeHtml(str); }
+
+async function screenCompany(company) {
+  const resp = await fetch("/api/screen", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: company.name, country: company.country }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+runBtn.addEventListener("click", async () => {
+  if (running) return;
+  running = true;
+  runBtn.textContent = "⏳ Sedang berjalan...";
+  runBtn.disabled = true;
+
+  results = {};
+  companies.forEach((c) => (results[c.name] = { status: "pending" }));
+  renderTable();
+
+  for (const company of companies) {
+    results[company.name] = { status: "running" };
+    renderTable();
+    try {
+      const result = await screenCompany(company);
+      results[company.name] = result;
+    } catch (err) {
+      results[company.name] = { status: "error", notes: err.message || "Gagal memproses" };
+    }
+    renderTable();
+  }
+
+  running = false;
+  runBtn.textContent = "▶ Mulai screening";
+  runBtn.disabled = false;
+  exportBtn.style.display = "inline-flex";
+});
+
+exportBtn.addEventListener("click", () => {
+  const rows = companies.map((c) => {
+    const r = results[c.name] || {};
+    return {
+      company: c.name,
+      country: c.country || "",
+      status: r.status || "pending",
+      website: r.website || "",
+      phone: r.phone || "",
+      email: r.email || "",
+      notes: r.notes || "",
+    };
+  });
+  const csv = Papa.unparse(rows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "company-screening-results.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
