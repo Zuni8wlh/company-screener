@@ -4,67 +4,168 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Company Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
+  :root {
+    --paper: #FAF7F1;
+    --paper-raised: #FFFFFF;
+    --ink: #1C1A17;
+    --ink-soft: #6B6459;
+    --line: #E4DDCE;
+    --line-soft: #EFEAE0;
+    --verified: #2F6F4F;
+    --verified-bg: #EAF3EC;
+    --warn: #B4432E;
+    --warn-bg: #FBEEEA;
+    --pending: #9A9184;
+    --pending-bg: #F1EEE6;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: #faf9f7;
-    color: #1c1917;
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-image:
+      radial-gradient(circle, #00000009 1px, transparent 1px);
+    background-size: 22px 22px;
   }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
-  .eyebrow {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: #78716c; font-weight: 600; margin-bottom: 8px;
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 24px 100px; }
+
+  /* Header */
+  .masthead {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 8px;
+    flex-wrap: wrap; gap: 16px;
   }
-  h1 { font-size: 32px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
-  .sub { color: #78716c; font-size: 15px; margin-top: 8px; max-width: 560px; line-height: 1.5; }
-  .dropzone {
-    border: 1.5px dashed #c2410c; border-radius: 10px; padding: 28px;
-    text-align: center; background: #fff; margin: 24px 0; cursor: pointer;
+  .mark { display: flex; align-items: center; gap: 10px; }
+  .mark-icon {
+    width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px;
   }
-  .dropzone.has-file { border-style: solid; border-color: #d6d3d1; }
-  .dropzone strong { display: block; font-size: 14px; font-weight: 600; margin-top: 8px; }
-  .dropzone span { font-size: 12px; color: #a8a29e; }
+  .mark-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+  .doc-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft); text-align: right; line-height: 1.6; }
+
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 40px;
+    letter-spacing: -0.015em; margin: 28px 0 10px; line-height: 1.08;
+  }
+  .sub { color: var(--ink-soft); font-size: 15.5px; max-width: 580px; line-height: 1.55; margin-bottom: 36px; }
+
+  /* Upload slip */
+  .slip {
+    background: var(--paper-raised);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    padding: 26px 28px;
+    position: relative;
+    margin-bottom: 28px;
+    cursor: pointer;
+  }
+  .slip::before {
+    content: ""; position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
+    border: 1px dashed var(--line); pointer-events: none;
+  }
+  .slip.has-file { cursor: default; }
+  .slip-row { display: flex; align-items: center; gap: 16px; }
+  .slip-icon {
+    flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
+    border: 1.5px solid var(--ink); display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .slip-title { font-weight: 600; font-size: 14.5px; }
+  .slip-hint { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
   input[type=file] { display: none; }
+
   .error-box {
-    background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
-    padding: 10px 14px; margin-bottom: 20px; font-size: 13px; color: #b91c1c;
+    background: var(--warn-bg); border: 1px solid #E3C4BB; border-radius: 2px;
+    padding: 11px 16px; margin-bottom: 24px; font-size: 13px; color: var(--warn);
   }
-  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-  .toolbar .count { font-size: 13px; color: #78716c; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 14px; flex-wrap: wrap; gap: 12px; }
+  .count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  .count strong { color: var(--ink); }
   .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    border-radius: 7px; padding: 9px 16px; font-size: 13.5px; font-weight: 600;
-    cursor: pointer; border: 1px solid #d6d3d1; background: #fff; color: #1c1917;
+    display: inline-flex; align-items: center; gap: 7px;
+    border-radius: 2px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 1.5px solid var(--ink); background: var(--paper-raised); color: var(--ink);
+    font-family: 'Inter', sans-serif; transition: background .12s ease;
   }
-  .btn-primary { background: #c2410c; color: #fff; border: none; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
-  thead tr { background: #f5f5f4; text-align: left; }
-  th { padding: 10px 14px; font-weight: 600; color: #57534e; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e7e5e4; }
-  td { padding: 10px 14px; border-bottom: 1px solid #f0efed; vertical-align: top; }
-  .table-card { border: 1px solid #e7e5e4; border-radius: 10px; overflow: hidden; }
-  .mono { font-family: monospace; font-size: 12px; }
-  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
-  .foot-note { font-size: 11.5px; color: #a8a29e; margin-top: 14px; line-height: 1.5; }
-  a { color: #c2410c; text-decoration: none; }
+  .btn:hover { background: var(--line-soft); }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: #33302A; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* Table */
+  .ledger { border: 1.5px solid var(--ink); border-radius: 2px; overflow: hidden; background: var(--paper-raised); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { border-bottom: 1.5px solid var(--ink); }
+  th {
+    padding: 11px 16px; text-align: left; font-family: 'JetBrains Mono', monospace;
+    font-weight: 500; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft);
+  }
+  td { padding: 13px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: #FCFBF8; }
+  .company-name { font-weight: 600; font-family: 'Fraunces', serif; font-size: 14.5px; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .notes-cell { color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+
+  .stamp {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em;
+    border: 1px solid transparent;
+  }
+  .stamp-active { background: var(--verified-bg); color: var(--verified); border-color: #C6DECC; }
+  .stamp-unclear { background: #FBF3E3; color: #96631B; border-color: #EEDCB3; }
+  .stamp-not_found, .stamp-error { background: var(--warn-bg); color: var(--warn); border-color: #E3C4BB; }
+  .stamp-pending, .stamp-running { background: var(--pending-bg); color: var(--pending); border-color: var(--line); }
+
+  a { color: var(--verified); text-decoration: none; }
   a:hover { text-decoration: underline; }
+
+  .foot-note {
+    font-size: 11.5px; color: var(--ink-soft); margin-top: 18px; line-height: 1.6;
+    border-top: 1px dashed var(--line); padding-top: 14px;
+  }
+
   .spin { animation: spin 1s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 30px; }
+    .doc-meta { display: none; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">🏢 Company Screener</div>
+
+  <div class="masthead">
+    <div class="mark">
+      <div class="mark-icon">CS</div>
+      <div class="mark-text">Company Screener<br>Verifikasi Kontak B2B</div>
+    </div>
+    <div class="doc-meta">DOKUMEN No. — <span id="doc-id">0000</span><br>Status: <span id="doc-status">Menunggu upload</span></div>
+  </div>
+
   <h1>Upload list, temukan kontaknya</h1>
   <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email.</p>
 
-  <label class="dropzone" id="dropzone" for="file-input">
-    <div style="font-size:22px;">⬆</div>
-    <strong id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</strong>
-    <span>Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</span>
+  <label class="slip" id="dropzone" for="file-input">
+    <div class="slip-row">
+      <div class="slip-icon">↑</div>
+      <div>
+        <div class="slip-title" id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</div>
+        <div class="slip-hint">Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</div>
+      </div>
+    </div>
   </label>
   <input type="file" id="file-input" accept=".csv" />
 
@@ -74,11 +175,11 @@
     <div class="toolbar">
       <div class="count" id="count-text"></div>
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-primary" id="run-btn">▶ Mulai screening</button>
-        <button class="btn" id="export-btn" style="display:none;">⬇ Export CSV</button>
+        <button class="btn btn-primary" id="run-btn">▶&nbsp; Mulai screening</button>
+        <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export CSV</button>
       </div>
     </div>
-    <div class="table-card">
+    <div class="ledger">
       <table>
         <thead>
           <tr>
@@ -93,13 +194,9 @@
 </div>
 
 <script>
-const STATUS_STYLES = {
-  active:    { label: "Active",    color: "#15803d", bg: "#f0fdf4" },
-  unclear:   { label: "Unclear",   color: "#b45309", bg: "#fffbeb" },
-  not_found: { label: "Not found", color: "#b91c1c", bg: "#fef2f2" },
-  error:     { label: "Error",     color: "#6b7280", bg: "#f9fafb" },
-  pending:   { label: "Waiting",   color: "#9ca3af", bg: "#f9fafb" },
-  running:   { label: "Searching", color: "#c2410c", bg: "#fff7ed" },
+const STAMP_LABEL = {
+  active: "Aktif", unclear: "Belum jelas", not_found: "Tidak ditemukan",
+  error: "Error", pending: "Menunggu", running: "Mencari…",
 };
 
 let companies = [];
@@ -115,6 +212,10 @@ const countText = document.getElementById("count-text");
 const runBtn = document.getElementById("run-btn");
 const exportBtn = document.getElementById("export-btn");
 const tableBody = document.getElementById("table-body");
+const docId = document.getElementById("doc-id");
+const docStatus = document.getElementById("doc-status");
+
+docId.textContent = String(Math.floor(1000 + Math.random() * 9000));
 
 fileInput.addEventListener("change", (e) => {
   if (e.target.files[0]) handleFile(e.target.files[0]);
@@ -142,7 +243,8 @@ function handleFile(file) {
       content.style.display = "block";
       exportBtn.style.display = "none";
       renderTable();
-      countText.textContent = companies.length + " company terbaca";
+      countText.innerHTML = "<strong>" + companies.length + "</strong> company terbaca";
+      docStatus.textContent = "Siap di-screening";
     },
     error: (err) => showError(err.message),
   });
@@ -169,17 +271,17 @@ function showError(msg) {
 function renderTable() {
   tableBody.innerHTML = companies.map((c) => {
     const r = results[c.name] || { status: "idle" };
-    const style = STATUS_STYLES[r.status] || { label: "—", color: "#9ca3af", bg: "#f9fafb" };
+    const label = STAMP_LABEL[r.status] || "—";
     const icon = r.status === "running" ? '<span class="spin">↻</span>' :
                  r.status === "active" ? "✓" :
                  (r.status === "not_found" || r.status === "error") ? "✕" : "";
     return `<tr>
-      <td style="font-weight:600;">${escapeHtml(c.name)}</td>
-      <td><span class="badge" style="background:${style.bg};color:${style.color};">${icon} ${style.label}</span></td>
+      <td class="company-name">${escapeHtml(c.name)}</td>
+      <td><span class="stamp stamp-${r.status || 'pending'}">${icon} ${label}</span></td>
       <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
       <td class="mono">${escapeHtml(r.phone || "—")}</td>
       <td class="mono">${escapeHtml(r.email || "—")}</td>
-      <td style="color:#78716c;font-size:12px;">${escapeHtml(r.notes || "")}</td>
+      <td class="notes-cell">${escapeHtml(r.notes || "")}</td>
     </tr>`;
   }).join("");
 }
@@ -189,6 +291,12 @@ function escapeHtml(str) {
 }
 function escapeAttr(str) { return escapeHtml(str); }
 
+function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+// Free-tier Gemini allows ~5 requests/minute, so we space requests out
+// and back off automatically if we still hit a rate limit (429).
+const REQUEST_GAP_MS = 13000;
+
 async function screenCompany(company) {
   const resp = await fetch("/api/screen", {
     method: "POST",
@@ -196,7 +304,11 @@ async function screenCompany(company) {
     body: JSON.stringify({ name: company.name, country: company.country }),
   });
   const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error || "Request failed");
+  if (!resp.ok) {
+    const err = new Error(data.error || "Request failed");
+    err.isRateLimit = resp.status === 429 || /429|RESOURCE_EXHAUSTED/i.test(data.error || "");
+    throw err;
+  }
   return data;
 }
 
@@ -205,27 +317,47 @@ runBtn.addEventListener("click", async () => {
   running = true;
   runBtn.textContent = "⏳ Sedang berjalan...";
   runBtn.disabled = true;
+  docStatus.textContent = "Sedang diproses";
 
   results = {};
   companies.forEach((c) => (results[c.name] = { status: "pending" }));
   renderTable();
 
-  for (const company of companies) {
+  for (let i = 0; i < companies.length; i++) {
+    const company = companies[i];
     results[company.name] = { status: "running" };
     renderTable();
-    try {
-      const result = await screenCompany(company);
-      results[company.name] = result;
-    } catch (err) {
-      results[company.name] = { status: "error", notes: err.message || "Gagal memproses" };
+
+    let attempt = 0;
+    while (true) {
+      try {
+        const result = await screenCompany(company);
+        results[company.name] = result;
+        break;
+      } catch (err) {
+        attempt++;
+        if (err.isRateLimit && attempt <= 2) {
+          docStatus.textContent = `Kena limit — nunggu sebentar (${company.name})`;
+          results[company.name] = { status: "running" };
+          renderTable();
+          await sleep(30000);
+          continue;
+        }
+        results[company.name] = { status: "error", notes: err.message || "Gagal memproses" };
+        break;
+      }
     }
     renderTable();
+    docStatus.textContent = `Sedang diproses (${i + 1}/${companies.length})`;
+
+    if (i < companies.length - 1) await sleep(REQUEST_GAP_MS);
   }
 
   running = false;
-  runBtn.textContent = "▶ Mulai screening";
+  runBtn.innerHTML = "▶&nbsp; Mulai screening";
   runBtn.disabled = false;
   exportBtn.style.display = "inline-flex";
+  docStatus.textContent = "Selesai";
 });
 
 exportBtn.addEventListener("click", () => {
