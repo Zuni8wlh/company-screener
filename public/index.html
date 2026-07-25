@@ -6,166 +6,149 @@
 <title>Company Screener</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root {
-    --paper: #FAF7F1;
-    --paper-raised: #FFFFFF;
-    --ink: #1C1A17;
-    --ink-soft: #6B6459;
-    --line: #E4DDCE;
-    --line-soft: #EFEAE0;
-    --verified: #2F6F4F;
-    --verified-bg: #EAF3EC;
-    --warn: #B4432E;
-    --warn-bg: #FBEEEA;
-    --pending: #9A9184;
-    --pending-bg: #F1EEE6;
+    --bg: #F6F8FB;
+    --surface: #FFFFFF;
+    --border: #E3E8EF;
+    --text: #101828;
+    --text-muted: #667085;
+    --text-faint: #98A2B3;
+    --primary: #2E5CFF;
+    --primary-hover: #2549D6;
+    --primary-tint: #EEF2FF;
+    --success: #17B26A;
+    --success-tint: #ECFDF3;
+    --warn: #F79009;
+    --warn-tint: #FFFAEB;
+    --danger: #F04438;
+    --danger-tint: #FEF3F2;
+    --radius: 10px;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: 'Inter', -apple-system, sans-serif;
-    background-image:
-      radial-gradient(circle, #00000009 1px, transparent 1px);
-    background-size: 22px 22px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 24px 100px; }
-
-  /* Header */
-  .masthead {
-    display: flex; align-items: flex-end; justify-content: space-between;
-    border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 8px;
-    flex-wrap: wrap; gap: 16px;
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 32px; display: flex; align-items: center; gap: 10px;
   }
-  .mark { display: flex; align-items: center; gap: 10px; }
-  .mark-icon {
-    width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 50%;
+  .topbar-logo {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--primary);
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Fraunces', serif; font-weight: 700; font-size: 15px;
+    color: #fff; font-weight: 700; font-size: 14px;
   }
-  .mark-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
-  .doc-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft); text-align: right; line-height: 1.6; }
+  .topbar-name { font-weight: 600; font-size: 15px; }
 
-  h1 {
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: 40px;
-    letter-spacing: -0.015em; margin: 28px 0 10px; line-height: 1.08;
-  }
-  .sub { color: var(--ink-soft); font-size: 15.5px; max-width: 580px; line-height: 1.55; margin-bottom: 36px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 32px 80px; }
 
-  /* Upload slip */
-  .slip {
-    background: var(--paper-raised);
-    border: 1.5px solid var(--ink);
-    border-radius: 2px;
-    padding: 26px 28px;
-    position: relative;
-    margin-bottom: 28px;
-    cursor: pointer;
+  .page-head { margin-bottom: 28px; }
+  h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { color: var(--text-muted); font-size: 14.5px; max-width: 600px; line-height: 1.55; margin: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
   }
-  .slip::before {
-    content: ""; position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
-    border: 1px dashed var(--line); pointer-events: none;
+
+  .dropzone {
+    display: block; width: 100%;
+    padding: 32px; text-align: center; cursor: pointer; margin-bottom: 24px;
+    border: 1.5px dashed var(--border); background: var(--surface);
   }
-  .slip.has-file { cursor: default; }
-  .slip-row { display: flex; align-items: center; gap: 16px; }
-  .slip-icon {
-    flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
-    border: 1.5px solid var(--ink); display: flex; align-items: center; justify-content: center;
-    font-size: 17px;
+  .dropzone.has-file { border-style: solid; }
+  .dropzone-icon {
+    width: 44px; height: 44px; border-radius: 10px; background: var(--primary-tint);
+    color: var(--primary); display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px; font-size: 18px;
   }
-  .slip-title { font-weight: 600; font-size: 14.5px; }
-  .slip-hint { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+  .dropzone-title { font-weight: 600; font-size: 14.5px; margin-bottom: 4px; }
+  .dropzone-hint { font-size: 12.5px; color: var(--text-faint); }
   input[type=file] { display: none; }
 
   .error-box {
-    background: var(--warn-bg); border: 1px solid #E3C4BB; border-radius: 2px;
-    padding: 11px 16px; margin-bottom: 24px; font-size: 13px; color: var(--warn);
+    background: var(--danger-tint); border: 1px solid #FECDCA; border-radius: var(--radius);
+    padding: 12px 16px; margin-bottom: 20px; font-size: 13.5px; color: #B42318;
   }
 
-  /* Toolbar */
-  .toolbar { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 14px; flex-wrap: wrap; gap: 12px; }
-  .count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-soft); }
-  .count strong { color: var(--ink); }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+  .count { font-size: 13.5px; color: var(--text-muted); }
+  .count strong { color: var(--text); font-weight: 600; }
+
   .btn {
     display: inline-flex; align-items: center; gap: 7px;
-    border-radius: 2px; padding: 10px 18px; font-size: 13px; font-weight: 600;
-    cursor: pointer; border: 1.5px solid var(--ink); background: var(--paper-raised); color: var(--ink);
-    font-family: 'Inter', sans-serif; transition: background .12s ease;
+    border-radius: 8px; padding: 9px 16px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    font-family: inherit; transition: background .12s ease, border-color .12s ease;
   }
-  .btn:hover { background: var(--line-soft); }
-  .btn-primary { background: var(--ink); color: var(--paper); }
-  .btn-primary:hover { background: #33302A; }
-  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn:hover { background: #F9FAFB; }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn:disabled { opacity: 0.55; cursor: default; }
 
-  /* Table */
-  .ledger { border: 1.5px solid var(--ink); border-radius: 2px; overflow: hidden; background: var(--paper-raised); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead tr { border-bottom: 1.5px solid var(--ink); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead tr { background: #F9FAFB; }
   th {
-    padding: 11px 16px; text-align: left; font-family: 'JetBrains Mono', monospace;
-    font-weight: 500; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft);
+    padding: 11px 18px; text-align: left; font-weight: 600; font-size: 12px;
+    color: var(--text-muted); border-bottom: 1px solid var(--border);
   }
-  td { padding: 13px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  td { padding: 14px 18px; border-bottom: 1px solid #F2F4F7; vertical-align: top; }
   tbody tr:last-child td { border-bottom: none; }
-  tbody tr:nth-child(even) { background: #FCFBF8; }
-  .company-name { font-weight: 600; font-family: 'Fraunces', serif; font-size: 14.5px; }
-  .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  .notes-cell { color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+  tbody tr:hover { background: #FAFBFF; }
+  .company-name { font-weight: 600; color: var(--text); }
+  .mono { font-variant-numeric: tabular-nums; font-size: 13px; }
+  .notes-cell { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
 
-  .stamp {
+  .badge {
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
-    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em;
-    border: 1px solid transparent;
+    padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
   }
-  .stamp-active { background: var(--verified-bg); color: var(--verified); border-color: #C6DECC; }
-  .stamp-unclear { background: #FBF3E3; color: #96631B; border-color: #EEDCB3; }
-  .stamp-not_found, .stamp-error { background: var(--warn-bg); color: var(--warn); border-color: #E3C4BB; }
-  .stamp-pending, .stamp-running { background: var(--pending-bg); color: var(--pending); border-color: var(--line); }
+  .badge-active { background: var(--success-tint); color: var(--success); }
+  .badge-unclear { background: var(--warn-tint); color: #B54708; }
+  .badge-not_found, .badge-error { background: var(--danger-tint); color: #B42318; }
+  .badge-pending { background: #F2F4F7; color: var(--text-faint); }
+  .badge-running { background: var(--primary-tint); color: var(--primary); }
 
-  a { color: var(--verified); text-decoration: none; }
+  a { color: var(--primary); text-decoration: none; font-weight: 500; }
   a:hover { text-decoration: underline; }
 
   .foot-note {
-    font-size: 11.5px; color: var(--ink-soft); margin-top: 18px; line-height: 1.6;
-    border-top: 1px dashed var(--line); padding-top: 14px;
+    font-size: 12.5px; color: var(--text-faint); margin-top: 16px; line-height: 1.6;
   }
 
-  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  .spin { animation: spin .9s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 640px) {
-    h1 { font-size: 30px; }
-    .doc-meta { display: none; }
+    .wrap { padding: 24px 16px 60px; }
+    h1 { font-size: 21px; }
   }
 </style>
 </head>
 <body>
+
+<div class="topbar">
+  <div class="topbar-logo">CS</div>
+  <div class="topbar-name">Company Screener</div>
+</div>
+
 <div class="wrap">
 
-  <div class="masthead">
-    <div class="mark">
-      <div class="mark-icon">CS</div>
-      <div class="mark-text">Company Screener<br>Verifikasi Kontak B2B</div>
-    </div>
-    <div class="doc-meta">DOKUMEN No. — <span id="doc-id">0000</span><br>Status: <span id="doc-status">Menunggu upload</span></div>
+  <div class="page-head">
+    <h1>Upload list, temukan kontaknya</h1>
+    <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email.</p>
   </div>
 
-  <h1>Upload list, temukan kontaknya</h1>
-  <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email.</p>
-
-  <label class="slip" id="dropzone" for="file-input">
-    <div class="slip-row">
-      <div class="slip-icon">↑</div>
-      <div>
-        <div class="slip-title" id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</div>
-        <div class="slip-hint">Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</div>
-      </div>
-    </div>
+  <label class="card dropzone" id="dropzone" for="file-input">
+    <div class="dropzone-icon">↑</div>
+    <div class="dropzone-title" id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</div>
+    <div class="dropzone-hint">Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</div>
   </label>
   <input type="file" id="file-input" accept=".csv" />
 
@@ -179,7 +162,7 @@
         <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export CSV</button>
       </div>
     </div>
-    <div class="ledger">
+    <div class="card" style="overflow:hidden;">
       <table>
         <thead>
           <tr>
@@ -194,7 +177,7 @@
 </div>
 
 <script>
-const STAMP_LABEL = {
+const BADGE_LABEL = {
   active: "Aktif", unclear: "Belum jelas", not_found: "Tidak ditemukan",
   error: "Error", pending: "Menunggu", running: "Mencari…",
 };
@@ -212,10 +195,6 @@ const countText = document.getElementById("count-text");
 const runBtn = document.getElementById("run-btn");
 const exportBtn = document.getElementById("export-btn");
 const tableBody = document.getElementById("table-body");
-const docId = document.getElementById("doc-id");
-const docStatus = document.getElementById("doc-status");
-
-docId.textContent = String(Math.floor(1000 + Math.random() * 9000));
 
 fileInput.addEventListener("change", (e) => {
   if (e.target.files[0]) handleFile(e.target.files[0]);
@@ -244,7 +223,6 @@ function handleFile(file) {
       exportBtn.style.display = "none";
       renderTable();
       countText.innerHTML = "<strong>" + companies.length + "</strong> company terbaca";
-      docStatus.textContent = "Siap di-screening";
     },
     error: (err) => showError(err.message),
   });
@@ -271,13 +249,13 @@ function showError(msg) {
 function renderTable() {
   tableBody.innerHTML = companies.map((c) => {
     const r = results[c.name] || { status: "idle" };
-    const label = STAMP_LABEL[r.status] || "—";
+    const label = BADGE_LABEL[r.status] || "—";
     const icon = r.status === "running" ? '<span class="spin">↻</span>' :
-                 r.status === "active" ? "✓" :
-                 (r.status === "not_found" || r.status === "error") ? "✕" : "";
+                 r.status === "active" ? "●" :
+                 (r.status === "not_found" || r.status === "error") ? "●" : "";
     return `<tr>
       <td class="company-name">${escapeHtml(c.name)}</td>
-      <td><span class="stamp stamp-${r.status || 'pending'}">${icon} ${label}</span></td>
+      <td><span class="badge badge-${r.status || 'pending'}">${icon} ${label}</span></td>
       <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
       <td class="mono">${escapeHtml(r.phone || "—")}</td>
       <td class="mono">${escapeHtml(r.email || "—")}</td>
@@ -313,7 +291,6 @@ runBtn.addEventListener("click", async () => {
   running = true;
   runBtn.textContent = "⏳ Sedang berjalan...";
   runBtn.disabled = true;
-  docStatus.textContent = "Sedang diproses";
 
   results = {};
   companies.forEach((c) => (results[c.name] = { status: "pending" }));
@@ -333,7 +310,6 @@ runBtn.addEventListener("click", async () => {
       } catch (err) {
         attempt++;
         if (err.isRateLimit && attempt <= 2) {
-          docStatus.textContent = `Kena limit — nunggu sebentar (${company.name})`;
           results[company.name] = { status: "running" };
           renderTable();
           await sleep(15000);
@@ -344,14 +320,12 @@ runBtn.addEventListener("click", async () => {
       }
     }
     renderTable();
-    docStatus.textContent = `Sedang diproses (${i + 1}/${companies.length})`;
   }
 
   running = false;
   runBtn.innerHTML = "▶&nbsp; Mulai screening";
   runBtn.disabled = false;
   exportBtn.style.display = "inline-flex";
-  docStatus.textContent = "Selesai";
 });
 
 exportBtn.addEventListener("click", () => {
