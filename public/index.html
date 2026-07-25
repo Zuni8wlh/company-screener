@@ -293,10 +293,6 @@ function escapeAttr(str) { return escapeHtml(str); }
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
-// Free-tier Gemini allows ~5 requests/minute, so we space requests out
-// and back off automatically if we still hit a rate limit (429).
-const REQUEST_GAP_MS = 13000;
-
 async function screenCompany(company) {
   const resp = await fetch("/api/screen", {
     method: "POST",
@@ -306,7 +302,7 @@ async function screenCompany(company) {
   const data = await resp.json();
   if (!resp.ok) {
     const err = new Error(data.error || "Request failed");
-    err.isRateLimit = resp.status === 429 || /429|RESOURCE_EXHAUSTED/i.test(data.error || "");
+    err.isRateLimit = resp.status === 429 || /429|rate.?limit/i.test(data.error || "");
     throw err;
   }
   return data;
@@ -340,7 +336,7 @@ runBtn.addEventListener("click", async () => {
           docStatus.textContent = `Kena limit — nunggu sebentar (${company.name})`;
           results[company.name] = { status: "running" };
           renderTable();
-          await sleep(30000);
+          await sleep(15000);
           continue;
         }
         results[company.name] = { status: "error", notes: err.message || "Gagal memproses" };
@@ -349,8 +345,6 @@ runBtn.addEventListener("click", async () => {
     }
     renderTable();
     docStatus.textContent = `Sedang diproses (${i + 1}/${companies.length})`;
-
-    if (i < companies.length - 1) await sleep(REQUEST_GAP_MS);
   }
 
   running = false;
