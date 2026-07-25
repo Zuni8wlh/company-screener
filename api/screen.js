@@ -22,12 +22,12 @@ export default async function handler(req, res) {
 
 Company name: "${name}"${country ? `\nCountry (from source list, may be imprecise): ${country}` : ""}
 
-Search the web to find this specific company (do not confuse it with similarly-named companies). Determine:
+Search the web to find this specific company (do not confuse it with similarly-named companies). Search at most 2 times — stop once you have enough to decide. Determine:
 - status: "active" if you find current evidence of operations, "unclear" if you find the company but can't confirm current status, "not_found" if you cannot locate it at all
 - website: the official company website URL, or null
 - phone: a public phone number, or null
 - email: a public contact email, or null
-- notes: one short sentence (max 20 words) on anything relevant (e.g. "site under different name", "appears to be a trading arm of X")
+- notes: max 8 words, terse fragment only (e.g. "subsidiary of X", "site outdated")
 
 Respond with ONLY a raw JSON object, no markdown fences, no prose before or after, in exactly this shape:
 {"status":"active|unclear|not_found","website":null,"phone":null,"email":null,"notes":""}`;
