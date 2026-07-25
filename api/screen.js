@@ -1,16 +1,81 @@
 // Vercel serverless function: POST /api/screen
-// Body: { name: string, country?: string }
+// Body: { name: string, country?: string, force?: boolean }
 // Uses OpenAI's Responses API with the built-in web_search tool.
-// Holds the API key server-side — never exposed to the browser.
+// Results are saved to Supabase so they persist as a permanent asset —
+// re-screening the same company reuses the saved result instead of
+// spending tokens again, unless force=true is passed.
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function normalizeName(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function getCached(name) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  const url = `${SUPABASE_URL}/rest/v1/screened_companies?name_normalized=eq.${encodeURIComponent(
+    normalizeName(name)
+  )}&select=*&limit=1`;
+  const resp = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  });
+  if (!resp.ok) return null;
+  const rows = await resp.json();
+  return rows[0] || null;
+}
+
+async function saveResult(name, country, result) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  const url = `${SUPABASE_URL}/rest/v1/screened_companies?on_conflict=name_normalized`;
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates",
+    },
+    body: JSON.stringify([
+      {
+        name,
+        name_normalized: normalizeName(name),
+        country: country || null,
+        status: result.status,
+        website: result.website,
+        phone: result.phone,
+        email: result.email,
+        notes: result.notes,
+        updated_at: new Date().toISOString(),
+      },
+    ]),
+  }).catch(() => {}); // saving is best-effort; never block the response on it
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { name, country } = req.body || {};
+  const { name, country, force } = req.body || {};
   if (!name || typeof name !== "string") {
     return res.status(400).json({ error: "Missing 'name' in request body" });
+  }
+
+  // Reuse a saved result unless the caller explicitly asks to re-screen.
+  if (!force) {
+    const cached = await getCached(name);
+    if (cached) {
+      return res.status(200).json({
+        status: cached.status,
+        website: cached.website,
+        phone: cached.phone,
+        email: cached.email,
+        notes: cached.notes,
+        cached: true,
+        cachedAt: cached.updated_at,
+      });
+    }
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -54,8 +119,6 @@ Respond with ONLY a raw JSON object, no markdown fences, no prose before or afte
 
     const data = await response.json();
 
-    // output_text is a convenience field; fall back to scanning output items
-    // in case it's empty (can happen when the search tool consumes the turn).
     let rawText = (data.output_text || "").trim();
     if (!rawText && Array.isArray(data.output)) {
       const messageItem = data.output.find((item) => item.type === "message");
@@ -77,13 +140,17 @@ Respond with ONLY a raw JSON object, no markdown fences, no prose before or afte
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    return res.status(200).json({
+    const result = {
       status: parsed.status || "unclear",
       website: parsed.website || null,
       phone: parsed.phone || null,
       email: parsed.email || null,
       notes: parsed.notes || "",
-    });
+    };
+
+    await saveResult(name, country, result);
+
+    return res.status(200).json({ ...result, cached: false });
   } catch (err) {
     return res.status(500).json({ error: err.message || "Unknown server error" });
   }
