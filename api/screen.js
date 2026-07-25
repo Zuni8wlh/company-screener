@@ -1,6 +1,6 @@
 // Vercel serverless function: POST /api/screen
 // Body: { name: string, country?: string }
-// Uses Google's Gemini API with the built-in Google Search grounding tool.
+// Uses OpenAI's Responses API with the built-in web_search tool.
 // Holds the API key server-side — never exposed to the browser.
 
 export default async function handler(req, res) {
@@ -13,9 +13,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing 'name' in request body" });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "Server misconfigured: GEMINI_API_KEY not set" });
+    return res.status(500).json({ error: "Server misconfigured: OPENAI_API_KEY not set" });
   }
 
   const prompt = `You are verifying a company's current operating status and public contact details.
@@ -32,33 +32,41 @@ Search the web to find this specific company (do not confuse it with similarly-n
 Respond with ONLY a raw JSON object, no markdown fences, no prose before or after, in exactly this shape:
 {"status":"active|unclear|not_found","website":null,"phone":null,"email":null,"notes":""}`;
 
-  // Model: gemini-2.5-flash is on the free tier as of mid-2026.
-  // If Google renames/retires it, swap this string for whatever Flash model
-  // currently shows "Free tier" in https://ai.google.dev/gemini-api/docs/pricing
-  const model = "gemini-2.5-flash";
-
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
-        }),
-      }
-    );
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1",
+        tools: [{ type: "web_search_preview" }],
+        max_output_tokens: 1500,
+        input: prompt,
+      }),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: `Gemini API error: ${errText}` });
+      return res.status(response.status).json({ error: `OpenAI API error: ${errText}` });
     }
 
     const data = await response.json();
-    const candidate = (data.candidates || [])[0];
-    const parts = candidate?.content?.parts || [];
-    const rawText = parts.map((p) => p.text || "").join("\n").trim();
+
+    // output_text is a convenience field; fall back to scanning output items
+    // in case it's empty (can happen when the search tool consumes the turn).
+    let rawText = (data.output_text || "").trim();
+    if (!rawText && Array.isArray(data.output)) {
+      const messageItem = data.output.find((item) => item.type === "message");
+      if (messageItem && Array.isArray(messageItem.content)) {
+        rawText = messageItem.content
+          .filter((c) => c.type === "output_text")
+          .map((c) => c.text)
+          .join("\n")
+          .trim();
+      }
+    }
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
