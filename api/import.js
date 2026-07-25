@@ -27,7 +27,6 @@ export default async function handler(req, res) {
     .filter((r) => r && r.name && r.name.toString().trim().length > 0)
     .map((r) => ({
       name: r.name.toString().trim(),
-      name_normalized: normalizeName(r.name.toString()),
       country: r.country || null,
       status: r.status || "unclear",
       website: r.website || null,
