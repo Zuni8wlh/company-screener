@@ -202,10 +202,13 @@
     <div class="toolbar">
       <input type="text" id="history-search" class="search-input" placeholder="Cari nama company..." />
       <div style="display:flex; gap:10px;">
+        <button class="btn" id="history-import">↑&nbsp; Import CSV lama</button>
         <button class="btn" id="history-refresh">↻&nbsp; Refresh</button>
         <button class="btn" id="history-export">↓&nbsp; Export CSV</button>
       </div>
     </div>
+    <input type="file" id="import-file-input" accept=".csv" style="display:none;" />
+    <div id="import-status" class="error-box" style="display:none;"></div>
     <div class="card" style="overflow:hidden;">
       <table>
         <thead>
@@ -250,7 +253,79 @@ const historyBody = document.getElementById("history-body");
 const historySearch = document.getElementById("history-search");
 const historyRefresh = document.getElementById("history-refresh");
 const historyExport = document.getElementById("history-export");
+const historyImport = document.getElementById("history-import");
+const importFileInput = document.getElementById("import-file-input");
+const importStatus = document.getElementById("import-status");
 const historyCount = document.getElementById("history-count");
+
+historyImport.addEventListener("click", () => importFileInput.click());
+importFileInput.addEventListener("change", (e) => {
+  if (e.target.files[0]) handleImportFile(e.target.files[0]);
+  importFileInput.value = "";
+});
+
+function handleImportFile(file) {
+  importStatus.style.display = "none";
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: async (res) => {
+      const keys = res.data.length ? Object.keys(res.data[0]) : [];
+      const nameKey = keys.find((k) => /^(company|nama|name)/i.test(k.trim()));
+      if (!nameKey) {
+        showImportStatus("Tidak ketemu kolom nama company di file ini.", true);
+        return;
+      }
+      const find = (row, patterns) => {
+        const k = keys.find((key) => patterns.test(key.trim()));
+        return k ? (row[k] || "").toString().trim() : "";
+      };
+      const rows = res.data
+        .map((row) => ({
+          name: (row[nameKey] || "").toString().trim(),
+          country: find(row, /^(country|negara)/i),
+          status: find(row, /^status/i) || "unclear",
+          website: find(row, /^website/i),
+          phone: find(row, /^phone|telepon/i),
+          email: find(row, /^email/i),
+          notes: find(row, /^notes|catatan/i),
+        }))
+        .filter((r) => r.name);
+
+      if (!rows.length) {
+        showImportStatus("File kosong atau tidak ada nama company yang valid.", true);
+        return;
+      }
+
+      historyImport.disabled = true;
+      historyImport.textContent = "⏳ Mengimpor...";
+      try {
+        const resp = await fetch("/api/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Import gagal");
+        showImportStatus(`Berhasil impor ${data.imported} company ke riwayat.`, false);
+        loadHistory();
+      } catch (err) {
+        showImportStatus(err.message || "Import gagal", true);
+      }
+      historyImport.disabled = false;
+      historyImport.innerHTML = "↑&nbsp; Import CSV lama";
+    },
+    error: (err) => showImportStatus(err.message, true),
+  });
+}
+
+function showImportStatus(msg, isError) {
+  importStatus.textContent = msg;
+  importStatus.style.display = "block";
+  importStatus.style.background = isError ? "var(--danger-tint)" : "var(--success-tint)";
+  importStatus.style.color = isError ? "#B42318" : "#067647";
+  importStatus.style.borderColor = isError ? "#FECDCA" : "#ABEFC6";
+}
 
 tabUpload.addEventListener("click", () => switchTab("upload"));
 tabHistory.addEventListener("click", () => switchTab("history"));
