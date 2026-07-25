@@ -125,6 +125,22 @@
   .spin { animation: spin .9s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tab {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    font-size: 13.5px; font-weight: 600; color: var(--text-muted);
+    padding: 10px 4px; margin-right: 20px; border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  .search-input {
+    flex: 1; max-width: 320px; padding: 9px 14px; border-radius: 8px;
+    border: 1px solid var(--border); font-family: inherit; font-size: 13.5px;
+    background: var(--surface); color: var(--text);
+  }
+  .search-input:focus { outline: none; border-color: var(--primary); }
+  .badge-cached { background: #F2F4F7; color: var(--text-faint); }
+
   @media (max-width: 640px) {
     .wrap { padding: 24px 16px 60px; }
     h1 { font-size: 21px; }
@@ -142,37 +158,65 @@
 
   <div class="page-head">
     <h1>Upload list, temukan kontaknya</h1>
-    <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email.</p>
+    <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email — hasilnya tersimpan permanen, tidak perlu di-research ulang.</p>
   </div>
 
-  <label class="card dropzone" id="dropzone" for="file-input">
-    <div class="dropzone-icon">↑</div>
-    <div class="dropzone-title" id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</div>
-    <div class="dropzone-hint">Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</div>
-  </label>
-  <input type="file" id="file-input" accept=".csv" />
+  <div class="tabs">
+    <button class="tab active" id="tab-upload">Upload &amp; Screening</button>
+    <button class="tab" id="tab-history">Riwayat Tersimpan</button>
+  </div>
 
-  <div id="error-box" class="error-box" style="display:none;"></div>
+  <div id="view-upload">
+    <label class="card dropzone" id="dropzone" for="file-input">
+      <div class="dropzone-icon">↑</div>
+      <div class="dropzone-title" id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</div>
+      <div class="dropzone-hint">Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</div>
+    </label>
+    <input type="file" id="file-input" accept=".csv" />
 
-  <div id="content" style="display:none;">
+    <div id="error-box" class="error-box" style="display:none;"></div>
+
+    <div id="content" style="display:none;">
+      <div class="toolbar">
+        <div class="count" id="count-text"></div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" id="run-btn">▶&nbsp; Mulai screening</button>
+          <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export CSV</button>
+        </div>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <p class="foot-note">Hasil dari pencarian web otomatis — akurasi tidak 100%, terutama untuk company kecil/lokal tanpa website resmi. Selalu verifikasi manual sebelum dipakai untuk outreach. Company yang sudah pernah di-screening akan diambil dari data tersimpan (tidak research ulang, tidak kena biaya lagi).</p>
+    </div>
+  </div>
+
+  <div id="view-history" style="display:none;">
     <div class="toolbar">
-      <div class="count" id="count-text"></div>
+      <input type="text" id="history-search" class="search-input" placeholder="Cari nama company..." />
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-primary" id="run-btn">▶&nbsp; Mulai screening</button>
-        <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export CSV</button>
+        <button class="btn" id="history-refresh">↻&nbsp; Refresh</button>
+        <button class="btn" id="history-export">↓&nbsp; Export CSV</button>
       </div>
     </div>
     <div class="card" style="overflow:hidden;">
       <table>
         <thead>
           <tr>
-            <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th>
+            <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th><th>Diupdate</th>
           </tr>
         </thead>
-        <tbody id="table-body"></tbody>
+        <tbody id="history-body"></tbody>
       </table>
     </div>
-    <p class="foot-note">Hasil dari pencarian web otomatis — akurasi tidak 100%, terutama untuk company kecil/lokal tanpa website resmi. Selalu verifikasi manual sebelum dipakai untuk outreach.</p>
+    <p class="foot-note" id="history-count"></p>
   </div>
 </div>
 
@@ -185,6 +229,12 @@ const BADGE_LABEL = {
 let companies = [];
 let results = {};
 let running = false;
+let historyRows = [];
+
+const tabUpload = document.getElementById("tab-upload");
+const tabHistory = document.getElementById("tab-history");
+const viewUpload = document.getElementById("view-upload");
+const viewHistory = document.getElementById("view-history");
 
 const dropzone = document.getElementById("dropzone");
 const dropzoneText = document.getElementById("dropzone-text");
@@ -195,6 +245,79 @@ const countText = document.getElementById("count-text");
 const runBtn = document.getElementById("run-btn");
 const exportBtn = document.getElementById("export-btn");
 const tableBody = document.getElementById("table-body");
+
+const historyBody = document.getElementById("history-body");
+const historySearch = document.getElementById("history-search");
+const historyRefresh = document.getElementById("history-refresh");
+const historyExport = document.getElementById("history-export");
+const historyCount = document.getElementById("history-count");
+
+tabUpload.addEventListener("click", () => switchTab("upload"));
+tabHistory.addEventListener("click", () => switchTab("history"));
+
+function switchTab(which) {
+  const isUpload = which === "upload";
+  tabUpload.classList.toggle("active", isUpload);
+  tabHistory.classList.toggle("active", !isUpload);
+  viewUpload.style.display = isUpload ? "block" : "none";
+  viewHistory.style.display = isUpload ? "none" : "block";
+  if (!isUpload) loadHistory();
+}
+
+async function loadHistory(query) {
+  historyBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">Memuat...</td></tr>`;
+  try {
+    const url = "/api/history" + (query ? `?q=${encodeURIComponent(query)}` : "");
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Gagal memuat riwayat");
+    historyRows = data.rows || [];
+    renderHistory();
+  } catch (err) {
+    historyBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#B42318; padding:24px;">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderHistory() {
+  historyCount.textContent = historyRows.length
+    ? `${historyRows.length} company tersimpan`
+    : "Belum ada data tersimpan — mulai screening di tab Upload & Screening.";
+  historyBody.innerHTML = historyRows.map((r) => {
+    const label = BADGE_LABEL[r.status] || r.status || "—";
+    const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
+    return `<tr>
+      <td class="company-name">${escapeHtml(r.name)}</td>
+      <td><span class="badge badge-${r.status || 'pending'}">${label}</span></td>
+      <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
+      <td class="mono">${escapeHtml(r.phone || "—")}</td>
+      <td class="mono">${escapeHtml(r.email || "—")}</td>
+      <td class="notes-cell">${escapeHtml(r.notes || "")}</td>
+      <td class="notes-cell">${updated}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">Belum ada data.</td></tr>`;
+}
+
+let searchDebounce;
+historySearch.addEventListener("input", () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => loadHistory(historySearch.value.trim()), 350);
+});
+historyRefresh.addEventListener("click", () => loadHistory(historySearch.value.trim()));
+historyExport.addEventListener("click", () => {
+  const rows = historyRows.map((r) => ({
+    company: r.name, country: r.country || "", status: r.status || "",
+    website: r.website || "", phone: r.phone || "", email: r.email || "",
+    notes: r.notes || "", updated_at: r.updated_at || "",
+  }));
+  const csv = Papa.unparse(rows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "company-screener-riwayat.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+});
 
 fileInput.addEventListener("change", (e) => {
   if (e.target.files[0]) handleFile(e.target.files[0]);
@@ -253,9 +376,10 @@ function renderTable() {
     const icon = r.status === "running" ? '<span class="spin">↻</span>' :
                  r.status === "active" ? "●" :
                  (r.status === "not_found" || r.status === "error") ? "●" : "";
+    const cachedTag = r.cached ? '<span class="badge badge-cached" style="margin-left:6px;">tersimpan</span>' : "";
     return `<tr>
       <td class="company-name">${escapeHtml(c.name)}</td>
-      <td><span class="badge badge-${r.status || 'pending'}">${icon} ${label}</span></td>
+      <td><span class="badge badge-${r.status || 'pending'}">${icon} ${label}</span>${cachedTag}</td>
       <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
       <td class="mono">${escapeHtml(r.phone || "—")}</td>
       <td class="mono">${escapeHtml(r.email || "—")}</td>
