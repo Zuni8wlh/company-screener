@@ -41,7 +41,8 @@ Respond with ONLY a raw JSON object, no markdown fences, no prose before or afte
       },
       body: JSON.stringify({
         model: "gpt-4.1",
-        tools: [{ type: "web_search" }],
+        tools: [{ type: "web_search_preview" }],
+        max_output_tokens: 1500,
         input: prompt,
       }),
     });
@@ -52,11 +53,27 @@ Respond with ONLY a raw JSON object, no markdown fences, no prose before or afte
     }
 
     const data = await response.json();
-    const rawText = (data.output_text || "").trim();
+
+    // output_text is a convenience field; fall back to scanning output items
+    // in case it's empty (can happen when the search tool consumes the turn).
+    let rawText = (data.output_text || "").trim();
+    if (!rawText && Array.isArray(data.output)) {
+      const messageItem = data.output.find((item) => item.type === "message");
+      if (messageItem && Array.isArray(messageItem.content)) {
+        rawText = messageItem.content
+          .filter((c) => c.type === "output_text")
+          .map((c) => c.text)
+          .join("\n")
+          .trim();
+      }
+    }
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(502).json({ error: "Model did not return parseable JSON", raw: rawText });
+      return res.status(502).json({
+        error: "Model did not return parseable JSON",
+        raw: rawText.slice(0, 500),
+      });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
