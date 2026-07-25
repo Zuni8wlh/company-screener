@@ -39,7 +39,6 @@ async function saveResult(name, country, result) {
     body: JSON.stringify([
       {
         name,
-        name_normalized: normalizeName(name),
         country: country || null,
         status: result.status,
         website: result.website,
