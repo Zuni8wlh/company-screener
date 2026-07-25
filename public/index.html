@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -92,7 +92,8 @@
   .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
   .btn:disabled { opacity: 0.55; cursor: default; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13.5px; }
   thead tr { background: #F9FAFB; }
   th {
     padding: 11px 18px; text-align: left; font-weight: 600; font-size: 12px;
@@ -157,20 +158,20 @@
 <div class="wrap">
 
   <div class="page-head">
-    <h1>Upload list, temukan kontaknya</h1>
-    <p class="sub">Upload file CSV berisi nama company. Setiap company akan di-screening otomatis untuk status operasional, website, telepon, dan email — hasilnya tersimpan permanen, tidak perlu di-research ulang.</p>
+    <h1>Upload your list, find their contacts</h1>
+    <p class="sub">Upload a CSV file with company names. Each company is automatically screened for operating status, website, phone, and email — results are saved permanently, no need to re-research.</p>
   </div>
 
   <div class="tabs">
     <button class="tab active" id="tab-upload">Upload &amp; Screening</button>
-    <button class="tab" id="tab-history">Riwayat Tersimpan</button>
+    <button class="tab" id="tab-history">Saved History</button>
   </div>
 
   <div id="view-upload">
     <label class="card dropzone" id="dropzone" for="file-input">
       <div class="dropzone-icon">↑</div>
-      <div class="dropzone-title" id="dropzone-text">Drop file CSV di sini, atau klik untuk pilih</div>
-      <div class="dropzone-hint">Kolom pertama diasumsikan nama company (atau kolom bernama "company"/"nama")</div>
+      <div class="dropzone-title" id="dropzone-text">Drop a CSV file here, or click to select</div>
+      <div class="dropzone-hint">The first column is assumed to be the company name (or a column named "company"/"name")</div>
     </label>
     <input type="file" id="file-input" accept=".csv" />
 
@@ -180,11 +181,12 @@
       <div class="toolbar">
         <div class="count" id="count-text"></div>
         <div style="display:flex; gap:10px;">
-          <button class="btn btn-primary" id="run-btn">▶&nbsp; Mulai screening</button>
+          <button class="btn btn-primary" id="run-btn">▶&nbsp; Start screening</button>
           <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export CSV</button>
         </div>
       </div>
       <div class="card" style="overflow:hidden;">
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -193,16 +195,17 @@
           </thead>
           <tbody id="table-body"></tbody>
         </table>
+        </div>
       </div>
-      <p class="foot-note">Hasil dari pencarian web otomatis — akurasi tidak 100%, terutama untuk company kecil/lokal tanpa website resmi. Selalu verifikasi manual sebelum dipakai untuk outreach. Company yang sudah pernah di-screening akan diambil dari data tersimpan (tidak research ulang, tidak kena biaya lagi).</p>
+      <p class="foot-note">Results come from automated web search — accuracy isn't 100%, especially for small/local companies without an official website. Always verify manually before using for outreach. Companies already screened before are pulled from saved data (no re-research, no extra cost).</p>
     </div>
   </div>
 
   <div id="view-history" style="display:none;">
     <div class="toolbar">
-      <input type="text" id="history-search" class="search-input" placeholder="Cari nama company..." />
+      <input type="text" id="history-search" class="search-input" placeholder="Search company name..." />
       <div style="display:flex; gap:10px;">
-        <button class="btn" id="history-import">↑&nbsp; Import CSV lama</button>
+        <button class="btn" id="history-import">↑&nbsp; Import old CSV</button>
         <button class="btn" id="history-refresh">↻&nbsp; Refresh</button>
         <button class="btn" id="history-export">↓&nbsp; Export CSV</button>
       </div>
@@ -210,14 +213,16 @@
     <input type="file" id="import-file-input" accept=".csv" style="display:none;" />
     <div id="import-status" class="error-box" style="display:none;"></div>
     <div class="card" style="overflow:hidden;">
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
-            <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th><th>Diupdate</th>
+            <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th><th>Updated</th>
           </tr>
         </thead>
         <tbody id="history-body"></tbody>
       </table>
+      </div>
     </div>
     <p class="foot-note" id="history-count"></p>
   </div>
@@ -225,8 +230,8 @@
 
 <script>
 const BADGE_LABEL = {
-  active: "Aktif", unclear: "Belum jelas", not_found: "Tidak ditemukan",
-  error: "Error", pending: "Menunggu", running: "Mencari…",
+  active: "Active", unclear: "Unclear", not_found: "Not found",
+  error: "Error", pending: "Waiting", running: "Searching…",
 };
 
 let companies = [];
@@ -271,9 +276,9 @@ function handleImportFile(file) {
     skipEmptyLines: true,
     complete: async (res) => {
       const keys = res.data.length ? Object.keys(res.data[0]) : [];
-      const nameKey = keys.find((k) => /^(company|nama|name)/i.test(k.trim()));
+      const nameKey = keys.find((k) => /^(company|name)/i.test(k.trim()));
       if (!nameKey) {
-        showImportStatus("Tidak ketemu kolom nama company di file ini.", true);
+        showImportStatus("Couldn't find a company name column in this file.", true);
         return;
       }
       const find = (row, patterns) => {
@@ -283,22 +288,22 @@ function handleImportFile(file) {
       const rows = res.data
         .map((row) => ({
           name: (row[nameKey] || "").toString().trim(),
-          country: find(row, /^(country|negara)/i),
+          country: find(row, /^country/i),
           status: find(row, /^status/i) || "unclear",
           website: find(row, /^website/i),
-          phone: find(row, /^phone|telepon/i),
+          phone: find(row, /^phone/i),
           email: find(row, /^email/i),
-          notes: find(row, /^notes|catatan/i),
+          notes: find(row, /^notes/i),
         }))
         .filter((r) => r.name);
 
       if (!rows.length) {
-        showImportStatus("File kosong atau tidak ada nama company yang valid.", true);
+        showImportStatus("File is empty or has no valid company names.", true);
         return;
       }
 
       historyImport.disabled = true;
-      historyImport.textContent = "⏳ Mengimpor...";
+      historyImport.textContent = "⏳ Importing...";
       try {
         const resp = await fetch("/api/import", {
           method: "POST",
@@ -306,14 +311,14 @@ function handleImportFile(file) {
           body: JSON.stringify({ rows }),
         });
         const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || "Import gagal");
-        showImportStatus(`Berhasil impor ${data.imported} company ke riwayat.`, false);
+        if (!resp.ok) throw new Error(data.error || "Import failed");
+        showImportStatus(`Successfully imported ${data.imported} companies into history.`, false);
         loadHistory();
       } catch (err) {
-        showImportStatus(err.message || "Import gagal", true);
+        showImportStatus(err.message || "Import failed", true);
       }
       historyImport.disabled = false;
-      historyImport.innerHTML = "↑&nbsp; Import CSV lama";
+      historyImport.innerHTML = "↑&nbsp; Import old CSV";
     },
     error: (err) => showImportStatus(err.message, true),
   });
@@ -340,12 +345,12 @@ function switchTab(which) {
 }
 
 async function loadHistory(query) {
-  historyBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">Memuat...</td></tr>`;
+  historyBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">Loading...</td></tr>`;
   try {
     const url = "/api/history" + (query ? `?q=${encodeURIComponent(query)}` : "");
     const resp = await fetch(url);
     const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "Gagal memuat riwayat");
+    if (!resp.ok) throw new Error(data.error || "Failed to load history");
     historyRows = data.rows || [];
     renderHistory();
   } catch (err) {
@@ -355,11 +360,11 @@ async function loadHistory(query) {
 
 function renderHistory() {
   historyCount.textContent = historyRows.length
-    ? `${historyRows.length} company tersimpan`
-    : "Belum ada data tersimpan — mulai screening di tab Upload & Screening.";
+    ? `${historyRows.length} companies saved`
+    : "No saved data yet — start screening in the Upload & Screening tab.";
   historyBody.innerHTML = historyRows.map((r) => {
     const label = BADGE_LABEL[r.status] || r.status || "—";
-    const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—";
+    const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—";
     return `<tr>
       <td class="company-name">${escapeHtml(r.name)}</td>
       <td><span class="badge badge-${r.status || 'pending'}">${label}</span></td>
@@ -369,7 +374,7 @@ function renderHistory() {
       <td class="notes-cell">${escapeHtml(r.notes || "")}</td>
       <td class="notes-cell">${updated}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">Belum ada data.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">No data yet.</td></tr>`;
 }
 
 let searchDebounce;
@@ -389,7 +394,7 @@ historyExport.addEventListener("click", () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "company-screener-riwayat.csv";
+  a.download = "company-screener-history.csv";
   a.click();
   URL.revokeObjectURL(url);
 });
