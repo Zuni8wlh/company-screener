@@ -1,6 +1,7 @@
 // Vercel serverless function: POST /api/screen
 // Body: { name: string, country?: string }
-// Holds the Anthropic API key server-side — never exposed to the browser.
+// Uses OpenAI's Responses API with the built-in web_search tool.
+// Holds the API key server-side — never exposed to the browser.
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -12,9 +13,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing 'name' in request body" });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "Server misconfigured: ANTHROPIC_API_KEY not set" });
+    return res.status(500).json({ error: "Server misconfigured: OPENAI_API_KEY not set" });
   }
 
   const prompt = `You are verifying a company's current operating status and public contact details.
@@ -32,31 +33,26 @@ Respond with ONLY a raw JSON object, no markdown fences, no prose before or afte
 {"status":"active|unclear|not_found","website":null,"phone":null,"email":null,"notes":""}`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        model: "gpt-4.1",
+        tools: [{ type: "web_search" }],
+        input: prompt,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(response.status).json({ error: `Anthropic API error: ${errText}` });
+      return res.status(response.status).json({ error: `OpenAI API error: ${errText}` });
     }
 
     const data = await response.json();
-    const textBlocks = (data.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text);
-    const rawText = textBlocks.join("\n").trim();
+    const rawText = (data.output_text || "").trim();
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
