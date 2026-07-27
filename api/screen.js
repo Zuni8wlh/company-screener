@@ -1,18 +1,21 @@
 // Vercel serverless function: POST /api/screen
-// Body: { name: string, country?: string, force?: boolean }
+// Body: { name: string, country?: string, folder?: string, force?: boolean }
 // Uses OpenAI's Responses API with the built-in web_search tool.
 // Results are saved to Supabase so they persist as a permanent asset —
 // re-screening the same company reuses the saved result instead of
 // spending tokens again, unless force=true is passed.
+// Each company can belong to multiple "folders" (batches) without being
+// re-researched — the folder is just appended to that company's folder list.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DEFAULT_FOLDER = "Uncategorized";
 
 function normalizeName(name) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-async function getCached(name) {
+async function getExisting(name) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
   const url = `${SUPABASE_URL}/rest/v1/screened_companies?name_normalized=eq.${encodeURIComponent(
     normalizeName(name)
@@ -25,7 +28,13 @@ async function getCached(name) {
   return rows[0] || null;
 }
 
-async function saveResult(name, country, result) {
+function mergeFolders(existingFolders, folder) {
+  const set = new Set(existingFolders || []);
+  set.add(folder || DEFAULT_FOLDER);
+  return Array.from(set);
+}
+
+async function saveResult(name, country, result, folders) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return;
   const url = `${SUPABASE_URL}/rest/v1/screened_companies?on_conflict=name_normalized`;
   await fetch(url, {
@@ -45,6 +54,7 @@ async function saveResult(name, country, result) {
         phone: result.phone,
         email: result.email,
         notes: result.notes,
+        folders,
         updated_at: new Date().toISOString(),
       },
     ]),
@@ -56,25 +66,41 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { name, country, force } = req.body || {};
+  const { name, country, folder, force } = req.body || {};
   if (!name || typeof name !== "string") {
     return res.status(400).json({ error: "Missing 'name' in request body" });
   }
 
+  const existing = await getExisting(name);
+
   // Reuse a saved result unless the caller explicitly asks to re-screen.
-  if (!force) {
-    const cached = await getCached(name);
-    if (cached) {
-      return res.status(200).json({
-        status: cached.status,
-        website: cached.website,
-        phone: cached.phone,
-        email: cached.email,
-        notes: cached.notes,
-        cached: true,
-        cachedAt: cached.updated_at,
-      });
+  if (!force && existing) {
+    // Even on a cache hit, make sure this company is tagged under the
+    // requested folder so it shows up when browsing that folder later.
+    const folders = mergeFolders(existing.folders, folder);
+    if (JSON.stringify(folders) !== JSON.stringify(existing.folders || [])) {
+      await saveResult(
+        existing.name,
+        existing.country,
+        {
+          status: existing.status,
+          website: existing.website,
+          phone: existing.phone,
+          email: existing.email,
+          notes: existing.notes,
+        },
+        folders
+      );
     }
+    return res.status(200).json({
+      status: existing.status,
+      website: existing.website,
+      phone: existing.phone,
+      email: existing.email,
+      notes: existing.notes,
+      cached: true,
+      cachedAt: existing.updated_at,
+    });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -147,7 +173,8 @@ Respond with ONLY a raw JSON object, no markdown fences, no prose before or afte
       notes: parsed.notes || "",
     };
 
-    await saveResult(name, country, result);
+    const folders = mergeFolders(existing ? existing.folders : [], folder);
+    await saveResult(name, country, result, folders);
 
     return res.status(200).json({ ...result, cached: false });
   } catch (err) {
