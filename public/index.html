@@ -94,7 +94,7 @@
   .btn:disabled { opacity: 0.55; cursor: default; }
 
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13.5px; }
+  table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; }
   thead tr { background: #F9FAFB; }
   th {
     padding: 11px 18px; text-align: left; font-weight: 600; font-size: 12px;
@@ -143,6 +143,35 @@
   .search-input:focus { outline: none; border-color: var(--primary); }
   .badge-cached { background: #F2F4F7; color: var(--text-faint); }
 
+  .folder-picker { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .folder-picker label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .folder-select, .folder-new-input {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: inherit; font-size: 13.5px; background: var(--surface); color: var(--text);
+  }
+  .folder-select:focus, .folder-new-input:focus { outline: none; border-color: var(--primary); }
+
+  .history-layout { display: flex; gap: 20px; align-items: flex-start; }
+  .folder-sidebar {
+    flex-shrink: 0; width: 190px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 8px; box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  }
+  .folder-sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); padding: 8px 10px 4px; }
+  .folder-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text);
+  }
+  .folder-item:hover { background: #F9FAFB; }
+  .folder-item.active { background: var(--primary-tint); color: var(--primary); font-weight: 600; }
+  .folder-item .count { font-size: 11.5px; color: var(--text-faint); }
+  .folder-item.active .count { color: var(--primary); }
+  .history-main { flex: 1; min-width: 0; }
+
+  @media (max-width: 720px) {
+    .history-layout { flex-direction: column; }
+    .folder-sidebar { width: 100%; }
+  }
+
   @media (max-width: 640px) {
     .wrap { padding: 24px 16px 60px; }
     h1 { font-size: 21px; }
@@ -179,6 +208,14 @@
     <div id="error-box" class="error-box" style="display:none;"></div>
 
     <div id="content" style="display:none;">
+      <div class="folder-picker">
+        <label for="folder-select">Save into folder:</label>
+        <select class="folder-select" id="folder-select">
+          <option value="">Uncategorized</option>
+        </select>
+        <input type="text" class="folder-new-input" id="folder-new-input" placeholder="Or type a new folder name..." style="display:none;" />
+        <button class="btn" id="folder-toggle-new" type="button">+ New folder</button>
+      </div>
       <div class="toolbar">
         <div class="count" id="count-text"></div>
         <div style="display:flex; gap:10px;">
@@ -213,19 +250,36 @@
     </div>
     <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none;" />
     <div id="import-status" class="error-box" style="display:none;"></div>
-    <div class="card" style="overflow:hidden;">
-      <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th><th>Updated</th>
-          </tr>
-        </thead>
-        <tbody id="history-body"></tbody>
-      </table>
+
+    <div class="history-layout">
+      <div class="folder-sidebar">
+        <div class="folder-sidebar-title">Folders</div>
+        <div id="folder-list"></div>
+      </div>
+      <div class="history-main">
+        <div class="toolbar" id="bulk-toolbar" style="display:none;">
+          <div class="count" id="bulk-count"></div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" id="bulk-add-folder">+ Add selected to folder</button>
+            <button class="btn" id="bulk-clear">Clear selection</button>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34px;"><input type="checkbox" id="select-all-checkbox" /></th>
+                <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th><th>Updated</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+          </div>
+        </div>
+        <p class="foot-note" id="history-count"></p>
       </div>
     </div>
-    <p class="foot-note" id="history-count"></p>
   </div>
 </div>
 
@@ -239,6 +293,14 @@ let companies = [];
 let results = {};
 let running = false;
 let historyRows = [];
+let activeFolder = null; // null = "All"
+let knownFolders = [];
+let selectedNames = new Set();
+
+const folderSelect = document.getElementById("folder-select");
+const folderNewInput = document.getElementById("folder-new-input");
+const folderToggleNew = document.getElementById("folder-toggle-new");
+const folderList = document.getElementById("folder-list");
 
 const tabUpload = document.getElementById("tab-upload");
 const tabHistory = document.getElementById("tab-history");
@@ -263,6 +325,11 @@ const historyImport = document.getElementById("history-import");
 const importFileInput = document.getElementById("import-file-input");
 const importStatus = document.getElementById("import-status");
 const historyCount = document.getElementById("history-count");
+const bulkToolbar = document.getElementById("bulk-toolbar");
+const bulkCount = document.getElementById("bulk-count");
+const bulkAddFolder = document.getElementById("bulk-add-folder");
+const bulkClear = document.getElementById("bulk-clear");
+const selectAllCheckbox = document.getElementById("select-all-checkbox");
 
 historyImport.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", (e) => {
@@ -272,6 +339,7 @@ importFileInput.addEventListener("change", (e) => {
 
 function handleImportFile(file) {
   importStatus.style.display = "none";
+  const targetFolder = window.prompt("Save this import into which folder? (leave blank for Uncategorized)", "") || "";
   parseSpreadsheet(file)
     .then(async (data) => {
       const keys = data.length ? Object.keys(data[0]) : [];
@@ -307,11 +375,11 @@ function handleImportFile(file) {
         const resp = await fetch("/api/import", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rows }),
+          body: JSON.stringify({ rows, folder: targetFolder.trim() || undefined }),
         });
         const respData = await resp.json();
         if (!resp.ok) throw new Error(respData.error || "Import failed");
-        showImportStatus(`Successfully imported ${respData.imported} companies into history.`, false);
+        showImportStatus(`Successfully imported ${respData.imported} companies into "${respData.folder}".`, false);
         loadHistory();
       } catch (err) {
         showImportStatus(err.message || "Import failed", true);
@@ -333,6 +401,28 @@ function showImportStatus(msg, isError) {
 tabUpload.addEventListener("click", () => switchTab("upload"));
 tabHistory.addEventListener("click", () => switchTab("history"));
 
+folderToggleNew.addEventListener("click", () => {
+  const showing = folderNewInput.style.display !== "none";
+  folderNewInput.style.display = showing ? "none" : "inline-block";
+  folderSelect.style.display = showing ? "inline-block" : "none";
+  folderToggleNew.textContent = showing ? "+ New folder" : "Choose existing";
+  if (!showing) folderNewInput.focus();
+});
+
+function getSelectedFolder() {
+  if (folderNewInput.style.display !== "none") {
+    return folderNewInput.value.trim() || null;
+  }
+  return folderSelect.value || null;
+}
+
+function populateFolderDropdown() {
+  const current = folderSelect.value;
+  folderSelect.innerHTML = '<option value="">Uncategorized</option>' +
+    knownFolders.filter((f) => f !== "Uncategorized").map((f) => `<option value="${escapeAttr(f)}">${escapeHtml(f)}</option>`).join("");
+  if (knownFolders.includes(current)) folderSelect.value = current;
+}
+
 function switchTab(which) {
   const isUpload = which === "upload";
   tabUpload.classList.toggle("active", isUpload);
@@ -341,29 +431,61 @@ function switchTab(which) {
   viewHistory.style.display = isUpload ? "none" : "block";
   if (!isUpload) loadHistory();
 }
-
 async function loadHistory(query) {
-  historyBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">Loading...</td></tr>`;
+  historyBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-faint); padding:24px;">Loading...</td></tr>`;
   try {
     const url = "/api/history" + (query ? `?q=${encodeURIComponent(query)}` : "");
     const resp = await fetch(url);
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || "Failed to load history");
     historyRows = data.rows || [];
+
+    // Derive the folder list client-side from whatever rows we have.
+    const folderSet = new Set();
+    historyRows.forEach((r) => (r.folders || []).forEach((f) => folderSet.add(f)));
+    knownFolders = Array.from(folderSet).sort();
+    populateFolderDropdown();
+
+    renderFolderSidebar();
     renderHistory();
   } catch (err) {
-    historyBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#B42318; padding:24px;">${escapeHtml(err.message)}</td></tr>`;
+    historyBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#B42318; padding:24px;">${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
+function renderFolderSidebar() {
+  const counts = {};
+  historyRows.forEach((r) => (r.folders || []).forEach((f) => (counts[f] = (counts[f] || 0) + 1)));
+  const allItem = `<div class="folder-item ${activeFolder === null ? 'active' : ''}" data-folder="">
+    <span>All companies</span><span class="count">${historyRows.length}</span>
+  </div>`;
+  const items = knownFolders.map((f) => `<div class="folder-item ${activeFolder === f ? 'active' : ''}" data-folder="${escapeAttr(f)}">
+    <span>${escapeHtml(f)}</span><span class="count">${counts[f] || 0}</span>
+  </div>`).join("");
+  folderList.innerHTML = allItem + items;
+  folderList.querySelectorAll(".folder-item").forEach((el) => {
+    el.addEventListener("click", () => {
+      activeFolder = el.dataset.folder || null;
+      renderFolderSidebar();
+      renderHistory();
+    });
+  });
+}
+
 function renderHistory() {
-  historyCount.textContent = historyRows.length
-    ? `${historyRows.length} companies saved`
+  const visibleRows = activeFolder
+    ? historyRows.filter((r) => (r.folders || []).includes(activeFolder))
+    : historyRows;
+
+  historyCount.textContent = visibleRows.length
+    ? `${visibleRows.length} companies${activeFolder ? ` in "${activeFolder}"` : " saved"}`
     : "No saved data yet — start screening in the Upload & Screening tab.";
-  historyBody.innerHTML = historyRows.map((r) => {
+  historyBody.innerHTML = visibleRows.map((r) => {
     const label = BADGE_LABEL[r.status] || r.status || "—";
     const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—";
+    const checked = selectedNames.has(r.name) ? "checked" : "";
     return `<tr>
+      <td><input type="checkbox" class="row-checkbox" data-name="${escapeAttr(r.name)}" ${checked} /></td>
       <td class="company-name">${escapeHtml(r.name)}</td>
       <td><span class="badge badge-${r.status || 'pending'}">${label}</span></td>
       <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
@@ -372,8 +494,70 @@ function renderHistory() {
       <td class="notes-cell">${escapeHtml(r.notes || "")}</td>
       <td class="notes-cell">${updated}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="7" style="text-align:center; color:var(--text-faint); padding:24px;">No data yet.</td></tr>`;
+  }).join("") || `<tr><td colspan="8" style="text-align:center; color:var(--text-faint); padding:24px;">No data yet.</td></tr>`;
+
+  historyBody.querySelectorAll(".row-checkbox").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) selectedNames.add(cb.dataset.name);
+      else selectedNames.delete(cb.dataset.name);
+      updateBulkToolbar();
+    });
+  });
+  selectAllCheckbox.checked = visibleRows.length > 0 && visibleRows.every((r) => selectedNames.has(r.name));
+  updateBulkToolbar();
 }
+
+function updateBulkToolbar() {
+  bulkToolbar.style.display = selectedNames.size > 0 ? "flex" : "none";
+  bulkCount.innerHTML = `<strong>${selectedNames.size}</strong> selected`;
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const visibleRows = activeFolder
+    ? historyRows.filter((r) => (r.folders || []).includes(activeFolder))
+    : historyRows;
+  if (selectAllCheckbox.checked) {
+    visibleRows.forEach((r) => selectedNames.add(r.name));
+  } else {
+    visibleRows.forEach((r) => selectedNames.delete(r.name));
+  }
+  renderHistory();
+});
+
+bulkClear.addEventListener("click", () => {
+  selectedNames.clear();
+  renderHistory();
+});
+
+bulkAddFolder.addEventListener("click", async () => {
+  const folderName = window.prompt("Add the selected companies to which folder?", "");
+  if (!folderName || !folderName.trim()) return;
+
+  const rowsToTag = historyRows.filter((r) => selectedNames.has(r.name));
+  bulkAddFolder.disabled = true;
+  bulkAddFolder.textContent = "Adding...";
+  try {
+    const resp = await fetch("/api/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rows: rowsToTag.map((r) => ({
+          name: r.name, country: r.country, status: r.status,
+          website: r.website, phone: r.phone, email: r.email, notes: r.notes,
+        })),
+        folder: folderName.trim(),
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Failed to update folder");
+    selectedNames.clear();
+    await loadHistory(historySearch.value.trim());
+  } catch (err) {
+    alert(err.message || "Failed to update folder");
+  }
+  bulkAddFolder.disabled = false;
+  bulkAddFolder.textContent = "+ Add selected to folder";
+});
 
 let searchDebounce;
 historySearch.addEventListener("input", () => {
@@ -382,10 +566,13 @@ historySearch.addEventListener("input", () => {
 });
 historyRefresh.addEventListener("click", () => loadHistory(historySearch.value.trim()));
 historyExport.addEventListener("click", () => {
-  const rows = historyRows.map((r) => ({
+  const visibleRows = activeFolder
+    ? historyRows.filter((r) => (r.folders || []).includes(activeFolder))
+    : historyRows;
+  const rows = visibleRows.map((r) => ({
     company: r.name, country: r.country || "", status: r.status || "",
     website: r.website || "", phone: r.phone || "", email: r.email || "",
-    notes: r.notes || "", updated_at: r.updated_at || "",
+    notes: r.notes || "", folders: (r.folders || []).join("; "), updated_at: r.updated_at || "",
   }));
   const csv = Papa.unparse(rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -507,7 +694,7 @@ async function screenCompany(company) {
   const resp = await fetch("/api/screen", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: company.name, country: company.country }),
+    body: JSON.stringify({ name: company.name, country: company.country, folder: getSelectedFolder() }),
   });
   const data = await resp.json();
   if (!resp.ok) {
