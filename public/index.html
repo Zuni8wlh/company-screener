@@ -172,6 +172,28 @@
     .folder-sidebar { width: 100%; }
   }
 
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(16,24,40,0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; z-index: 100;
+  }
+  .modal-box {
+    background: var(--surface); border-radius: 14px; padding: 28px;
+    width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(16,24,40,0.18);
+  }
+  .modal-title { font-size: 17px; font-weight: 700; margin: 0 0 6px; }
+  .modal-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 20px; line-height: 1.5; }
+  .modal-field-label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; }
+  .modal-select, .modal-input {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: inherit; font-size: 14px; background: var(--surface); color: var(--text); margin-bottom: 14px;
+  }
+  .modal-select:focus, .modal-input:focus { outline: none; border-color: var(--primary); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+  .current-folder-line { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+  .current-folder-line strong { color: var(--text); }
+  .current-folder-line a { cursor: pointer; }
+
   @media (max-width: 640px) {
     .wrap { padding: 24px 16px 60px; }
     h1 { font-size: 21px; }
@@ -208,14 +230,7 @@
     <div id="error-box" class="error-box" style="display:none;"></div>
 
     <div id="content" style="display:none;">
-      <div class="folder-picker">
-        <label for="folder-select">Save into folder:</label>
-        <select class="folder-select" id="folder-select">
-          <option value="">Uncategorized</option>
-        </select>
-        <input type="text" class="folder-new-input" id="folder-new-input" placeholder="Or type a new folder name..." style="display:none;" />
-        <button class="btn" id="folder-toggle-new" type="button">+ New folder</button>
-      </div>
+      <p class="current-folder-line">Saving into folder: <strong id="current-folder-label">Uncategorized</strong> — <a id="change-folder-link">Change</a></p>
       <div class="toolbar">
         <div class="count" id="count-text"></div>
         <div style="display:flex; gap:10px;">
@@ -283,6 +298,26 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="folder-modal" style="display:none;">
+  <div class="modal-box">
+    <p class="modal-title">Where should this be saved?</p>
+    <p class="modal-sub"><span id="modal-company-count">0</span> companies found. Pick a folder to keep this batch organized in your saved history.</p>
+
+    <label class="modal-field-label" for="modal-folder-select">Choose an existing folder</label>
+    <select class="modal-select" id="modal-folder-select">
+      <option value="">Uncategorized</option>
+    </select>
+
+    <label class="modal-field-label" for="modal-folder-new">...or create a new one</label>
+    <input type="text" class="modal-input" id="modal-folder-new" placeholder="e.g. Textile Indonesia — July 2026" />
+
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm">Continue</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const BADGE_LABEL = {
   active: "Active", unclear: "Unclear", not_found: "Not found",
@@ -297,9 +332,17 @@ let activeFolder = null; // null = "All"
 let knownFolders = [];
 let selectedNames = new Set();
 
-const folderSelect = document.getElementById("folder-select");
-const folderNewInput = document.getElementById("folder-new-input");
-const folderToggleNew = document.getElementById("folder-toggle-new");
+let selectedFolder = null; // the folder chosen via modal for the current upload batch
+let pendingParsedData = null; // rows waiting on folder confirmation
+
+const folderModal = document.getElementById("folder-modal");
+const modalFolderSelect = document.getElementById("modal-folder-select");
+const modalFolderNew = document.getElementById("modal-folder-new");
+const modalCompanyCount = document.getElementById("modal-company-count");
+const modalCancel = document.getElementById("modal-cancel");
+const modalConfirm = document.getElementById("modal-confirm");
+const currentFolderLabel = document.getElementById("current-folder-label");
+const changeFolderLink = document.getElementById("change-folder-link");
 const folderList = document.getElementById("folder-list");
 
 const tabUpload = document.getElementById("tab-upload");
@@ -401,26 +444,45 @@ function showImportStatus(msg, isError) {
 tabUpload.addEventListener("click", () => switchTab("upload"));
 tabHistory.addEventListener("click", () => switchTab("history"));
 
-folderToggleNew.addEventListener("click", () => {
-  const showing = folderNewInput.style.display !== "none";
-  folderNewInput.style.display = showing ? "none" : "inline-block";
-  folderSelect.style.display = showing ? "inline-block" : "none";
-  folderToggleNew.textContent = showing ? "+ New folder" : "Choose existing";
-  if (!showing) folderNewInput.focus();
-});
-
-function getSelectedFolder() {
-  if (folderNewInput.style.display !== "none") {
-    return folderNewInput.value.trim() || null;
-  }
-  return folderSelect.value || null;
+function populateModalFolderDropdown() {
+  modalFolderSelect.innerHTML = '<option value="">Uncategorized</option>' +
+    knownFolders.filter((f) => f !== "Uncategorized").map((f) => `<option value="${escapeAttr(f)}">${escapeHtml(f)}</option>`).join("");
 }
 
-function populateFolderDropdown() {
-  const current = folderSelect.value;
-  folderSelect.innerHTML = '<option value="">Uncategorized</option>' +
-    knownFolders.filter((f) => f !== "Uncategorized").map((f) => `<option value="${escapeAttr(f)}">${escapeHtml(f)}</option>`).join("");
-  if (knownFolders.includes(current)) folderSelect.value = current;
+function openFolderModal() {
+  populateModalFolderDropdown();
+  modalFolderNew.value = "";
+  modalFolderSelect.value = "";
+  modalCompanyCount.textContent = companies.length;
+  folderModal.style.display = "flex";
+}
+
+function closeFolderModal() {
+  folderModal.style.display = "none";
+}
+
+modalCancel.addEventListener("click", () => {
+  // Cancelling on first upload just defaults to Uncategorized and proceeds;
+  // cancelling a "Change" edit just keeps the previous selection.
+  closeFolderModal();
+  if (content.style.display === "none") {
+    selectedFolder = null;
+    finishUploadSetup();
+  }
+});
+
+modalConfirm.addEventListener("click", () => {
+  const typed = modalFolderNew.value.trim();
+  selectedFolder = typed || modalFolderSelect.value || null;
+  currentFolderLabel.textContent = selectedFolder || "Uncategorized";
+  closeFolderModal();
+  finishUploadSetup();
+});
+
+changeFolderLink.addEventListener("click", () => openFolderModal());
+
+function getSelectedFolder() {
+  return selectedFolder;
 }
 
 function switchTab(which) {
@@ -444,7 +506,6 @@ async function loadHistory(query) {
     const folderSet = new Set();
     historyRows.forEach((r) => (r.folders || []).forEach((f) => folderSet.add(f)));
     knownFolders = Array.from(folderSet).sort();
-    populateFolderDropdown();
 
     renderFolderSidebar();
     renderHistory();
@@ -638,12 +699,17 @@ function handleFile(file) {
         return;
       }
       results = {};
-      content.style.display = "block";
       exportBtn.style.display = "none";
-      renderTable();
-      countText.innerHTML = "<strong>" + companies.length + "</strong> companies found";
+      openFolderModal();
     })
     .catch((err) => showError(err.message || "Could not read the file"));
+}
+
+function finishUploadSetup() {
+  content.style.display = "block";
+  currentFolderLabel.textContent = selectedFolder || "Uncategorized";
+  renderTable();
+  countText.innerHTML = "<strong>" + companies.length + "</strong> companies found";
 }
 
 function extractCompanyList(rows) {
