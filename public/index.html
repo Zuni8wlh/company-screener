@@ -444,17 +444,34 @@ function showImportStatus(msg, isError) {
 tabUpload.addEventListener("click", () => switchTab("upload"));
 tabHistory.addEventListener("click", () => switchTab("history"));
 
+async function refreshKnownFolders() {
+  try {
+    const resp = await fetch("/api/history");
+    const data = await resp.json();
+    if (!resp.ok) return;
+    const folderSet = new Set();
+    (data.rows || []).forEach((r) => (r.folders || []).forEach((f) => folderSet.add(f)));
+    knownFolders = Array.from(folderSet).sort();
+  } catch (err) {
+    // Non-fatal: modal just falls back to whatever folders were already known.
+  }
+}
+
 function populateModalFolderDropdown() {
   modalFolderSelect.innerHTML = '<option value="">Uncategorized</option>' +
     knownFolders.filter((f) => f !== "Uncategorized").map((f) => `<option value="${escapeAttr(f)}">${escapeHtml(f)}</option>`).join("");
 }
 
-function openFolderModal() {
-  populateModalFolderDropdown();
+async function openFolderModal() {
   modalFolderNew.value = "";
   modalFolderSelect.value = "";
   modalCompanyCount.textContent = companies.length;
+  modalFolderSelect.disabled = true;
+  modalFolderSelect.innerHTML = '<option>Loading folders...</option>';
   folderModal.style.display = "flex";
+  await refreshKnownFolders();
+  populateModalFolderDropdown();
+  modalFolderSelect.disabled = false;
 }
 
 function closeFolderModal() {
