@@ -235,7 +235,7 @@
         <div class="count" id="count-text"></div>
         <div style="display:flex; gap:10px;">
           <button class="btn btn-primary" id="run-btn">▶&nbsp; Start screening</button>
-          <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export CSV</button>
+          <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export Excel</button>
         </div>
       </div>
       <div class="card" style="overflow:hidden;">
@@ -260,7 +260,7 @@
       <div style="display:flex; gap:10px;">
         <button class="btn" id="history-import">↑&nbsp; Import old file</button>
         <button class="btn" id="history-refresh">↻&nbsp; Refresh</button>
-        <button class="btn" id="history-export">↓&nbsp; Export CSV</button>
+        <button class="btn" id="history-export">↓&nbsp; Export Excel</button>
       </div>
     </div>
     <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none;" />
@@ -650,7 +650,7 @@ historyExport.addEventListener("click", () => {
   const rows = visibleRows.map((r) => ({
     Company: r.name, Country: r.country || "", Status: r.status || "",
     Website: r.website || "", Phone: r.phone || "", Email: r.email || "",
-    Notes: r.notes || "", Folders: (r.folders || []).join("; "), "Updated At": r.updated_at || "",
+    Notes: r.notes || "", Folder: activeFolder || "All", "Updated At": r.updated_at || "",
   }));
   downloadAsXlsx(rows, "company-screener-history.xlsx");
 });
