@@ -1,858 +1,814 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Company Screener</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WANDERLY — Travel & Tours</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #F6F8FB;
-    --surface: #FFFFFF;
-    --border: #E3E8EF;
-    --text: #101828;
-    --text-muted: #667085;
-    --text-faint: #98A2B3;
-    --primary: #2E5CFF;
-    --primary-hover: #2549D6;
-    --primary-tint: #EEF2FF;
-    --success: #17B26A;
-    --success-tint: #ECFDF3;
-    --warn: #F79009;
-    --warn-tint: #FFFAEB;
-    --danger: #F04438;
-    --danger-tint: #FEF3F2;
-    --radius: 10px;
+  :root{
+    --bg:#FFFFFF;
+    --bg-soft:#F5F6F8;
+    --ink:#14213D;
+    --ink-soft:#6B7280;
+    --navy:#12203D;
+    --navy-deep:#0B1730;
+    --slate:#5C6584;
+    --accent:#2E6BFF;
+    --accent-soft:#EAF0FF;
+    --gold:#F5A524;
+    --line:#E7E9EE;
+    --r-lg:28px;
+    --r-md:20px;
+    --r-sm:14px;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    -webkit-font-smoothing: antialiased;
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'DM Sans', sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
   }
-  .topbar {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 16px 32px; display: flex; align-items: center; gap: 10px;
-  }
-  .topbar-logo {
-    width: 30px; height: 30px; border-radius: 8px; background: var(--primary);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 14px;
-  }
-  .topbar-name { font-weight: 600; font-size: 15px; }
+  h1,h2,h3,h4{font-family:'Plus Jakarta Sans', sans-serif; font-weight:700; color:var(--navy); letter-spacing:-0.01em;}
+  a{color:inherit; text-decoration:none;}
+  img{display:block; max-width:100%;}
+  .wrap{max-width:1220px; margin:0 auto; padding:0 32px;}
 
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 32px 80px; }
+  /* ===== reveal animation ===== */
+  .reveal{opacity:0; transform:translateY(28px); transition:opacity .8s cubic-bezier(.16,.84,.44,1), transform .8s cubic-bezier(.16,.84,.44,1);}
+  .reveal.in{opacity:1; transform:translateY(0);}
+  .reveal.d1{transition-delay:.08s;}
+  .reveal.d2{transition-delay:.16s;}
+  .reveal.d3{transition-delay:.24s;}
+  .reveal.d4{transition-delay:.32s;}
 
-  .page-head { margin-bottom: 28px; }
-  h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; }
-  .sub { color: var(--text-muted); font-size: 14.5px; max-width: 600px; line-height: 1.55; margin: 0; }
+  @keyframes floatY{0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);}}
+  @keyframes pulseRing{0%{transform:scale(1); opacity:.55;} 100%{transform:scale(1.55); opacity:0;}}
+  @keyframes shimmer{0%{background-position:-400px 0;} 100%{background-position:400px 0;}}
+  @keyframes marquee{0%{transform:translateX(0);} 100%{transform:translateX(-50%);}}
+  @keyframes fadeScale{from{opacity:0; transform:scale(.94);} to{opacity:1; transform:scale(1);}}
 
-  .card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  /* ===== image placeholder ===== */
+  .imgph{
+    position:relative;
+    background:linear-gradient(100deg, #EEF0F4 8%, #F8F9FB 18%, #EEF0F4 33%);
+    background-size:800px 100%;
+    animation:shimmer 3.2s infinite linear;
+    display:flex; align-items:center; justify-content:center;
   }
-
-  .dropzone {
-    display: block; width: 100%;
-    padding: 32px; text-align: center; cursor: pointer; margin-bottom: 24px;
-    border: 1.5px dashed var(--border); background: var(--surface);
-  }
-  .dropzone.has-file { border-style: solid; }
-  .dropzone-icon {
-    width: 44px; height: 44px; border-radius: 10px; background: var(--primary-tint);
-    color: var(--primary); display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 12px; font-size: 18px;
-  }
-  .dropzone-title { font-weight: 600; font-size: 14.5px; margin-bottom: 4px; }
-  .dropzone-hint { font-size: 12.5px; color: var(--text-faint); }
-  input[type=file] { display: none; }
-
-  .error-box {
-    background: var(--danger-tint); border: 1px solid #FECDCA; border-radius: var(--radius);
-    padding: 12px 16px; margin-bottom: 20px; font-size: 13.5px; color: #B42318;
+  .imgph .imgph-label{
+    font-family:'DM Sans', sans-serif;
+    font-size:11px; letter-spacing:0.04em; text-transform:uppercase;
+    background:#fff; border:1px solid var(--line);
+    padding:6px 14px; border-radius:100px;
+    color:var(--ink-soft);
   }
 
-  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-  .count { font-size: 13.5px; color: var(--text-muted); }
-  .count strong { color: var(--text); font-weight: 600; }
-
-  .btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    border-radius: 8px; padding: 9px 16px; font-size: 13.5px; font-weight: 600;
-    cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text);
-    font-family: inherit; transition: background .12s ease, border-color .12s ease;
+  /* ===== Nav ===== */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(255,255,255,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
   }
-  .btn:hover { background: #F9FAFB; }
-  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
-  .btn:disabled { opacity: 0.55; cursor: default; }
-
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; }
-  thead tr { background: #F9FAFB; }
-  th {
-    padding: 11px 18px; text-align: left; font-weight: 600; font-size: 12px;
-    color: var(--text-muted); border-bottom: 1px solid var(--border);
+  nav{display:flex; align-items:center; justify-content:space-between; padding:18px 0; gap:24px;}
+  .logo{font-family:'Plus Jakarta Sans', sans-serif; font-weight:800; font-size:21px; color:var(--navy); display:flex; align-items:center; gap:8px;}
+  .logo-dot{width:9px; height:9px; border-radius:50%; background:var(--accent); animation:floatY 2.4s ease-in-out infinite;}
+  .nav-links{display:flex; gap:32px; font-size:14.5px; font-weight:500; color:var(--ink);}
+  .nav-links a{position:relative; padding-bottom:3px;}
+  .nav-links a::after{
+    content:''; position:absolute; left:0; bottom:0; width:0; height:2px; background:var(--accent);
+    transition:width .25s ease;
   }
-  td { padding: 14px 18px; border-bottom: 1px solid #F2F4F7; vertical-align: top; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: #FAFBFF; }
-  .company-name { font-weight: 600; color: var(--text); }
-  .mono { font-variant-numeric: tabular-nums; font-size: 13px; }
-  .notes-cell { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
-
-  .badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  .nav-links a:hover::after{width:100%;}
+  .nav-right{display:flex; align-items:center; gap:14px;}
+  .search-pill{
+    display:flex; align-items:center; gap:8px;
+    border:1px solid var(--line); border-radius:100px; padding:9px 16px;
+    font-size:13.5px; color:var(--ink-soft); background:var(--bg-soft);
+    min-width:210px; transition:border-color .2s;
   }
-  .badge-active { background: var(--success-tint); color: var(--success); }
-  .badge-unclear { background: var(--warn-tint); color: #B54708; }
-  .badge-not_found, .badge-error { background: var(--danger-tint); color: #B42318; }
-  .badge-pending { background: #F2F4F7; color: var(--text-faint); }
-  .badge-running { background: var(--primary-tint); color: var(--primary); }
-
-  a { color: var(--primary); text-decoration: none; font-weight: 500; }
-  a:hover { text-decoration: underline; }
-
-  .foot-note {
-    font-size: 12.5px; color: var(--text-faint); margin-top: 16px; line-height: 1.6;
+  .search-pill:hover{border-color:var(--accent);}
+  .nav-cta{
+    background:var(--navy); color:#fff;
+    padding:11px 22px; border-radius:100px; font-size:14px; font-weight:600;
+    transition:transform .25s ease, background .25s ease;
+    display:inline-block;
   }
+  .nav-cta:hover{background:var(--accent); transform:translateY(-2px);}
 
-  .spin { animation: spin .9s linear infinite; display: inline-block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-  .tab {
-    background: none; border: none; cursor: pointer; font-family: inherit;
-    font-size: 13.5px; font-weight: 600; color: var(--text-muted);
-    padding: 10px 4px; margin-right: 20px; border-bottom: 2px solid transparent;
+  .nav-toggle{
+    display:none; flex-direction:column; gap:5px;
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--line);
+    background:#fff; align-items:center; justify-content:center; cursor:pointer;
+    flex:0 0 auto;
   }
-  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-  .search-input {
-    flex: 1; max-width: 320px; padding: 9px 14px; border-radius: 8px;
-    border: 1px solid var(--border); font-family: inherit; font-size: 13.5px;
-    background: var(--surface); color: var(--text);
+  .nav-toggle span{
+    display:block; width:18px; height:2px; background:var(--navy);
+    transition:transform .3s ease, opacity .3s ease;
   }
-  .search-input:focus { outline: none; border-color: var(--primary); }
-  .badge-cached { background: #F2F4F7; color: var(--text-faint); }
+  .nav-toggle.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .nav-toggle.open span:nth-child(2){opacity:0;}
+  .nav-toggle.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
 
-  .folder-picker { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-  .folder-picker label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-  .folder-select, .folder-new-input {
-    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
-    font-family: inherit; font-size: 13.5px; background: var(--surface); color: var(--text);
+  .nav-links-mobile{
+    display:none;
+    max-height:0; overflow:hidden;
+    flex-direction:column;
+    background:#fff; border-bottom:1px solid var(--line);
+    transition:max-height .35s ease;
   }
-  .folder-select:focus, .folder-new-input:focus { outline: none; border-color: var(--primary); }
-
-  .history-layout { display: flex; gap: 20px; align-items: flex-start; }
-  .folder-sidebar {
-    flex-shrink: 0; width: 190px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 8px; box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+  .nav-links-mobile.open{max-height:340px;}
+  .nav-links-mobile a{
+    padding:16px 32px; font-size:15px; font-weight:500; color:var(--ink);
+    border-top:1px solid var(--line);
   }
-  .folder-sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); padding: 8px 10px 4px; }
-  .folder-item {
-    display: flex; justify-content: space-between; align-items: center; gap: 6px;
-    padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text);
-  }
-  .folder-item:hover { background: #F9FAFB; }
-  .folder-item.active { background: var(--primary-tint); color: var(--primary); font-weight: 600; }
-  .folder-item .count { font-size: 11.5px; color: var(--text-faint); }
-  .folder-item.active .count { color: var(--primary); }
-  .history-main { flex: 1; min-width: 0; }
-
-  @media (max-width: 720px) {
-    .history-layout { flex-direction: column; }
-    .folder-sidebar { width: 100%; }
+  .nav-links-mobile .nav-cta{
+    margin:16px 32px 20px; text-align:center;
   }
 
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(16,24,40,0.45);
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px; z-index: 100;
+  /* ===== Hero ===== */
+  .hero{padding:44px 0 0;}
+  .hero-frame{
+    position:relative; height:600px; border-radius:var(--r-lg); overflow:hidden;
+    animation:fadeScale .9s cubic-bezier(.16,.84,.44,1);
   }
-  .modal-box {
-    background: var(--surface); border-radius: 14px; padding: 28px;
-    width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(16,24,40,0.18);
+  .hero-frame .imgph{position:absolute; inset:0; height:100%; border-radius:var(--r-lg);}
+  .hero-overlay{position:absolute; inset:0; background:linear-gradient(to top, rgba(11,23,48,0.86) 0%, rgba(11,23,48,0.2) 55%, rgba(11,23,48,0.05) 75%); z-index:2;}
+  .hero-content{position:absolute; left:0; right:0; bottom:0; z-index:3; padding:0 48px 52px;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:13px; font-weight:600; letter-spacing:0.04em; color:#fff;
+    background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.25);
+    padding:7px 16px; border-radius:100px; margin-bottom:20px;
+    backdrop-filter:blur(6px);
   }
-  .modal-title { font-size: 17px; font-weight: 700; margin: 0 0 6px; }
-  .modal-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 20px; line-height: 1.5; }
-  .modal-field-label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; }
-  .modal-select, .modal-input {
-    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-    font-family: inherit; font-size: 14px; background: var(--surface); color: var(--text); margin-bottom: 14px;
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--gold);}
+  .hero h1{color:#fff; font-size:clamp(40px,6vw,64px); line-height:1.05; letter-spacing:-0.02em; margin-bottom:16px; max-width:640px;}
+  .hero h1 span{color:var(--gold);}
+  .hero p{color:rgba(255,255,255,0.82); max-width:460px; font-size:16px; margin-bottom:28px;}
+  .hero-actions{display:flex; gap:14px; flex-wrap:wrap;}
+  .btn-primary{
+    background:var(--accent); color:#fff; padding:15px 28px; border-radius:100px;
+    font-weight:600; font-size:14.5px; display:inline-block;
+    transition:transform .25s ease, box-shadow .25s ease;
+    box-shadow:0 8px 20px -6px rgba(46,107,255,0.55);
   }
-  .modal-select:focus, .modal-input:focus { outline: none; border-color: var(--primary); }
-  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-  .current-folder-line { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
-  .current-folder-line strong { color: var(--text); }
-  .current-folder-line a { cursor: pointer; }
+  .btn-primary:hover{transform:translateY(-3px); box-shadow:0 12px 26px -6px rgba(46,107,255,0.65);}
+  .btn-ghost{
+    background:rgba(255,255,255,0.1); color:#fff; padding:15px 28px; border-radius:100px;
+    font-weight:600; font-size:14.5px; border:1px solid rgba(255,255,255,0.5);
+    display:inline-block; transition:background .25s ease, transform .25s ease;
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,0.22); transform:translateY(-3px);}
 
-  @media (max-width: 640px) {
-    .wrap { padding: 24px 16px 60px; }
-    h1 { font-size: 21px; }
+  .float-badge{
+    position:absolute; top:36px; right:36px; z-index:4;
+    background:#fff; border-radius:var(--r-sm); padding:16px 20px;
+    display:flex; align-items:center; gap:12px;
+    box-shadow:0 20px 40px -18px rgba(11,23,48,0.35);
+    animation:floatY 4s ease-in-out infinite;
+  }
+  .float-badge .ring{
+    position:relative; width:38px; height:38px; border-radius:50%;
+    background:var(--accent-soft); display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex:0 0 auto;
+  }
+  .float-badge .ring::before{
+    content:''; position:absolute; inset:-6px; border-radius:50%; border:1.5px solid var(--accent);
+    animation:pulseRing 2.4s ease-out infinite;
+  }
+  .float-badge strong{display:block; font-size:16px; color:var(--navy);}
+  .float-badge span{font-size:11.5px; color:var(--ink-soft);}
+
+  /* ===== Section shell ===== */
+  section{padding:44px 0;}
+  .section-head{display:flex; justify-content:space-between; align-items:flex-end; gap:40px; margin-bottom:20px; flex-wrap:wrap;}
+  .section-head h2{font-size:clamp(28px,3.6vw,38px); max-width:560px; line-height:1.14;}
+  .section-head p{color:var(--ink-soft); max-width:340px; font-size:15px; padding-bottom:4px;}
+  .eyebrow-sm{
+    display:inline-block; font-size:13px; font-weight:700; color:var(--accent);
+    background:var(--accent-soft); padding:6px 14px; border-radius:100px; margin-bottom:12px;
+  }
+
+  /* ===== Why us ===== */
+  .why{display:grid; grid-template-columns:1.1fr 0.9fr; gap:64px; align-items:start;}
+  .why-copy p{color:var(--ink-soft); font-size:16px; max-width:460px; margin-bottom:24px; margin-top:0;}
+  .socials{display:flex; gap:14px; margin-bottom:32px;}
+  .socials a{
+    width:40px; height:40px; border-radius:50%; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+    transition:background .25s ease, color .25s ease, transform .25s ease;
+  }
+  .socials a:hover{background:var(--navy); color:#fff; transform:translateY(-3px);}
+  .stat-row{display:flex; gap:44px; flex-wrap:wrap;}
+  .stat strong{display:block; font-family:'Plus Jakarta Sans', sans-serif; font-size:32px; color:var(--navy); font-weight:800;}
+  .stat span{font-size:13px; color:var(--ink-soft);}
+
+  .why-cards{display:flex; flex-direction:column; gap:16px;}
+  .why-card{
+    border-radius:var(--r-md); padding:24px 26px;
+    display:flex; gap:18px; align-items:flex-start;
+    background:var(--slate); color:#fff;
+    transition:transform .3s ease, box-shadow .3s ease;
+  }
+  .why-card:hover{transform:translateX(6px); box-shadow:0 16px 30px -16px rgba(20,33,61,0.35);}
+  .why-card:nth-child(2){background:var(--bg-soft); color:var(--ink); border:1px solid var(--line);}
+  .why-card:nth-child(2) h4{color:var(--navy);}
+  .why-card:nth-child(3){background:var(--navy);}
+  .why-icon{
+    width:44px; height:44px; flex:0 0 auto; border-radius:14px;
+    background:rgba(255,255,255,0.16);
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .why-card:nth-child(2) .why-icon{background:var(--accent-soft); color:var(--accent);}
+  .why-card h4{font-size:16px; margin-bottom:6px; color:#fff;}
+  .why-card p{font-size:13.5px; opacity:0.85; line-height:1.5;}
+
+  /* ===== Destinations ===== */
+  .dest-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px;}
+  .dest-card{
+    background:#fff; border-radius:var(--r-md); overflow:hidden; border:1px solid var(--line);
+    transition:transform .35s cubic-bezier(.16,.84,.44,1), box-shadow .35s ease;
+  }
+  .dest-card:hover{transform:translateY(-8px); box-shadow:0 24px 40px -20px rgba(20,33,61,0.28);}
+  .dest-img{position:relative; height:190px; overflow:hidden;}
+  .dest-img .imgph{height:100%; transition:transform .5s ease;}
+  .dest-card:hover .dest-img .imgph{transform:scale(1.08);}
+  .dest-price{
+    position:absolute; top:14px; left:14px; z-index:2;
+    background:#fff; font-size:11.5px; font-weight:600;
+    padding:6px 12px; border-radius:100px; box-shadow:0 6px 14px -6px rgba(20,33,61,0.3);
+  }
+  .dest-body{padding:20px;}
+  .dest-body h3{font-size:18px; margin-bottom:6px;}
+  .dest-meta{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); margin-bottom:10px;}
+  .dest-meta .rating{color:var(--gold); font-weight:700;}
+  .dest-loc{font-size:12.5px; color:var(--ink-soft); display:flex; align-items:center; gap:6px;}
+  .dest-loc::before{content:'●'; color:var(--accent); font-size:8px;}
+
+  .view-more-row{display:flex; justify-content:space-between; align-items:center; margin-top:36px;}
+  .btn-outline{
+    border:1.5px solid var(--navy); color:var(--navy); background:#fff;
+    padding:13px 26px; border-radius:100px; font-weight:600; font-size:14px;
+    transition:background .25s ease, color .25s ease, transform .25s ease;
+  }
+  .btn-outline:hover{background:var(--navy); color:#fff; transform:translateY(-2px);}
+  .carousel-dots{display:flex; gap:10px;}
+  .carousel-dots button{
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:#fff; font-size:14px; color:var(--navy); cursor:pointer;
+    transition:background .2s ease, color .2s ease;
+  }
+  .carousel-dots button:hover{background:var(--navy); color:#fff;}
+
+  /* ===== Packages ===== */
+  .pkg-grid{display:grid; grid-template-columns:0.85fr 1fr 1fr; gap:22px;}
+  .pkg-lead{
+    background:var(--navy); color:#fff; border-radius:var(--r-md);
+    padding:36px 30px; display:flex; flex-direction:column; justify-content:space-between;
+    background-image:radial-gradient(circle at 85% 15%, rgba(46,107,255,0.35), transparent 55%);
+  }
+  .pkg-lead h3{color:#fff; font-size:25px; margin-bottom:12px; line-height:1.2;}
+  .pkg-lead p{color:rgba(255,255,255,0.72); font-size:14.5px; margin-bottom:28px;}
+  .pkg-lead .btn-ghost{color:#fff; border-color:rgba(255,255,255,0.4);}
+  .pkg-card{
+    border-radius:var(--r-md); overflow:hidden; position:relative; height:300px;
+    transition:transform .35s cubic-bezier(.16,.84,.44,1);
+  }
+  .pkg-card:hover{transform:translateY(-8px);}
+  .pkg-card .imgph{height:100%; border-radius:var(--r-md);}
+  .pkg-tag{
+    position:absolute; top:18px; left:18px; z-index:2;
+    width:44px; height:44px; border-radius:14px; background:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .pkg-info{
+    position:absolute; left:0; right:0; bottom:0; z-index:2;
+    padding:22px; background:linear-gradient(to top, rgba(11,23,48,0.92), transparent);
+    color:#fff;
+  }
+  .pkg-info h4{color:#fff; font-size:18px; margin-bottom:6px;}
+  .pkg-info p{font-size:13px; color:rgba(255,255,255,0.78);}
+
+  /* ===== Steps ===== */
+  .steps-head{text-align:center; max-width:600px; margin:0 auto 40px;}
+  .steps-row{display:grid; grid-template-columns:repeat(3,1fr); gap:28px; position:relative;}
+  .steps-row::before{
+    content:''; position:absolute; top:34px; left:14%; right:14%; height:2px;
+    background:repeating-linear-gradient(to right, var(--line) 0 8px, transparent 8px 16px);
+    z-index:0;
+  }
+  .step{position:relative; z-index:1; text-align:center; padding:0 20px;}
+  .step-num{
+    width:68px; height:68px; border-radius:50%; margin:0 auto 22px;
+    background:#fff; border:2px solid var(--navy);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:21px; color:var(--navy);
+    transition:transform .3s ease, background .3s ease, color .3s ease;
+  }
+  .step:hover .step-num{transform:scale(1.12); background:var(--navy); color:#fff;}
+  .step h4{font-size:18px; margin-bottom:10px;}
+  .step p{color:var(--ink-soft); font-size:14px; max-width:260px; margin:0 auto;}
+
+  /* ===== Testimonials ===== */
+  .testimonials{background:var(--navy); border-radius:var(--r-lg); margin:0 32px; padding:80px 48px; color:#fff; overflow:hidden;}
+  .testimonials .wrap{max-width:100%; padding:0;}
+  .testimonials .eyebrow-sm{background:rgba(255,255,255,0.12); color:var(--gold);}
+  .testimonials h2{color:#fff;}
+  .test-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px;}
+  .test-card{
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
+    border-radius:var(--r-md); padding:28px; display:flex; flex-direction:column; gap:20px;
+    transition:transform .3s ease, background .3s ease;
+  }
+  .test-card:hover{transform:translateY(-6px); background:rgba(255,255,255,0.1);}
+  .test-stars{color:var(--gold); font-size:13px; letter-spacing:2px;}
+  .test-card p{font-size:15px; color:rgba(255,255,255,0.85); line-height:1.6;}
+  .test-person{display:flex; align-items:center; gap:12px;}
+  .test-avatar{width:42px; height:42px; border-radius:50%; overflow:hidden; flex:0 0 auto;}
+  .test-person strong{display:block; font-size:14px;}
+  .test-person span{font-size:12px; color:rgba(255,255,255,0.55);}
+
+  /* logo marquee */
+  .marquee-wrap{overflow:hidden; margin-top:56px; border-top:1px solid rgba(255,255,255,0.14); padding-top:36px;}
+  .marquee-track{display:flex; gap:64px; width:max-content; animation:marquee 22s linear infinite;}
+  .marquee-track span{font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:15px; color:rgba(255,255,255,0.4); white-space:nowrap;}
+
+  /* ===== Newsletter ===== */
+  .newsletter{
+    background:var(--accent); color:#fff; border-radius:var(--r-lg); padding:56px 48px;
+    display:flex; justify-content:space-between; align-items:center; gap:40px; flex-wrap:wrap;
+    position:relative; overflow:hidden;
+  }
+  .newsletter::before{
+    content:''; position:absolute; width:280px; height:280px; border-radius:50%;
+    background:rgba(255,255,255,0.12); top:-120px; right:-60px;
+    animation:floatY 6s ease-in-out infinite;
+  }
+  .newsletter h3{color:#fff; font-size:29px; max-width:420px; line-height:1.2; position:relative;}
+  .newsletter p{color:rgba(255,255,255,0.85); font-size:14px; margin-top:10px; max-width:400px; position:relative;}
+  .newsletter-form{display:flex; gap:10px; flex-wrap:wrap; position:relative;}
+  .newsletter-form input{
+    background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.4);
+    padding:14px 20px; border-radius:100px; color:#fff; font-size:14px; min-width:240px;
+  }
+  .newsletter-form input::placeholder{color:rgba(255,255,255,0.7);}
+  .newsletter-form button{
+    background:var(--navy); color:#fff; border:none;
+    padding:14px 26px; border-radius:100px; font-weight:600; font-size:14px; cursor:pointer;
+    transition:transform .25s ease;
+  }
+  .newsletter-form button:hover{transform:translateY(-2px);}
+
+  /* ===== Footer ===== */
+  footer{padding:80px 0 32px;}
+  .foot-grid{display:grid; grid-template-columns:1.4fr 0.8fr 0.8fr 1fr; gap:40px; margin-bottom:56px;}
+  .foot-logo{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:22px; margin-bottom:16px; color:var(--navy);}
+  .foot-brand p{color:var(--ink-soft); font-size:14px; max-width:280px;}
+  .foot-col h5{font-size:12.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:18px; font-weight:700;}
+  .foot-col ul{list-style:none;}
+  .foot-col li{margin-bottom:12px;}
+  .foot-col a{font-size:14.5px; color:var(--ink); transition:color .2s ease;}
+  .foot-col a:hover{color:var(--accent);}
+  .foot-bottom{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+    padding-top:28px; border-top:1px solid var(--line);
+    font-size:13px; color:var(--ink-soft);
+  }
+
+  @media (max-width: 980px){
+    .why, .foot-grid{grid-template-columns:1fr;}
+    .why{gap:36px;}
+    .pkg-grid{grid-template-columns:1fr;}
+    .steps-row{grid-template-columns:1fr; gap:36px;}
+    .steps-row::before{display:none;}
+    .nav-links, .search-pill{display:none;}
+    .nav-toggle{display:flex;}
+    .nav-links-mobile{display:flex;}
+    .nav-right .nav-cta{padding:8px 15px; font-size:12.5px;}
+  }
+  @media (max-width: 560px){
+    .wrap{padding:0 18px;}
+    .hero-frame{height:480px;}
+    section{padding:32px 0;}
+    .why{gap:28px;}
+    .newsletter{padding:32px 22px;}
+    .stat-row{flex-wrap:nowrap; gap:10px; justify-content:space-between;}
+    .stat{flex:1 1 0; min-width:0;}
+    .stat strong{font-size:22px;}
+    .stat span{font-size:10.5px; line-height:1.3; display:block;}
+
+    /* destinations: horizontal scroll, no box */
+    .dest-grid{
+      display:flex; overflow-x:auto; gap:14px; padding-bottom:6px;
+      scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+      margin:0 -18px; padding-left:18px; padding-right:18px;
+    }
+    .dest-grid::-webkit-scrollbar{display:none;}
+    .dest-grid{scrollbar-width:none;}
+    .dest-card{flex:0 0 44%; scroll-snap-align:start;}
+    .view-more-row{flex-direction:column; align-items:flex-start; gap:14px; margin-top:20px;}
+
+    /* testimonials: horizontal scroll */
+    .test-grid{
+      display:flex; overflow-x:auto; gap:14px; padding-bottom:6px;
+      scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+      margin:0 -18px; padding-left:18px; padding-right:18px;
+    }
+    .test-grid::-webkit-scrollbar{display:none;}
+    .test-grid{scrollbar-width:none;}
+    .test-card{flex:0 0 82%; scroll-snap-align:start;}
   }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-logo">CS</div>
-  <div class="topbar-name">Company Screener</div>
-</div>
-
-<div class="wrap">
-
-  <div class="page-head">
-    <h1>Upload list, find their contacts</h1>
-    <p class="sub">Upload file with company names. Each company is automatically screened for operating status, website, phone, and email. Results are saved permanently, no need to re research.</p>
+<header>
+  <nav class="wrap">
+    <a href="#" class="logo"><span class="logo-dot"></span>WANDERLY</a>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#destinations">Destinations</a>
+      <a href="#packages">Packages</a>
+      <a href="#stories">Stories</a>
+      <a href="#about">About Us</a>
+    </div>
+    <div class="nav-right">
+      <div class="search-pill">🔍 Search a place, city...</div>
+      <a href="#" class="nav-cta">Book Now</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-links-mobile" id="navMobile">
+    <a href="#home">Home</a>
+    <a href="#destinations">Destinations</a>
+    <a href="#packages">Packages</a>
+    <a href="#stories">Stories</a>
+    <a href="#about">About Us</a>
+    <a href="#" class="nav-cta">Book Now</a>
   </div>
+</header>
 
-  <div class="tabs">
-    <button class="tab active" id="tab-upload">Upload &amp; Screening</button>
-    <button class="tab" id="tab-history">Saved History</button>
-  </div>
-
-  <div id="view-upload">
-    <label class="card dropzone" id="dropzone" for="file-input">
-      <div class="dropzone-icon">↑</div>
-      <div class="dropzone-title" id="dropzone-text">Drop a CSV or Excel file here, or click to select</div>
-      <div class="dropzone-hint">The first column is assumed to be the company name (or a column named "company"/"name"). Accepts .csv, .xlsx, .xls</div>
-    </label>
-    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" />
-
-    <div id="error-box" class="error-box" style="display:none;"></div>
-
-    <div id="content" style="display:none;">
-      <p class="current-folder-line">Saving into folder: <strong id="current-folder-label">Uncategorized</strong> — <a id="change-folder-link">Change</a></p>
-      <div class="toolbar">
-        <div class="count" id="count-text"></div>
-        <div style="display:flex; gap:10px;">
-          <button class="btn btn-primary" id="run-btn">▶&nbsp; Start screening</button>
-          <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export Excel</button>
+<section class="hero" id="home">
+  <div class="wrap">
+    <div class="hero-frame reveal">
+      <div class="imgph"><span class="imgph-label">Hero image — 1600×900</span></div>
+      <div class="hero-overlay"></div>
+      <div class="float-badge">
+        <div class="ring">🌍</div>
+        <div><strong>90+</strong><span>destinations</span></div>
+      </div>
+      <div class="hero-content">
+        <div class="eyebrow"><span class="dot"></span>Trip planning, simplified</div>
+        <h1>Discover the world, <span>one trip at a time</span></h1>
+        <p>Curated itineraries, local insight, and hassle-free planning — everything you need to explore the world without the guesswork.</p>
+        <div class="hero-actions">
+          <a href="#packages" class="btn-primary">Plan Your Trip</a>
+          <a href="#destinations" class="btn-ghost">Explore Destinations</a>
         </div>
       </div>
-      <div class="card" style="overflow:hidden;">
-        <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th>
-            </tr>
-          </thead>
-          <tbody id="table-body"></tbody>
-        </table>
-        </div>
-      </div>
-      <p class="foot-note">Results come from automated web search — accuracy isn't 100%, especially for small/local companies without an official website. Always verify manually before using for outreach. Companies already screened before are pulled from saved data (no re-research, no extra cost).</p>
     </div>
   </div>
+</section>
 
-  <div id="view-history" style="display:none;">
-    <div class="toolbar">
-      <input type="text" id="history-search" class="search-input" placeholder="Search company name..." />
-      <div style="display:flex; gap:10px;">
-        <button class="btn" id="history-import">↑&nbsp; Import old file</button>
-        <button class="btn" id="history-refresh">↻&nbsp; Refresh</button>
-        <button class="btn" id="history-export">↓&nbsp; Export Excel</button>
+<section id="about">
+  <div class="wrap why">
+    <div class="why-copy reveal">
+      <h2>Why thousands of travelers choose WANDERLY for their next adventure</h2>
+      <p>From hidden coastal towns to iconic landmarks, we make exploring the world easier, safer, and more memorable — with expert-crafted itineraries and support around the clock.</p>
+      <div class="socials">
+        <a href="#">in</a>
+        <a href="#">ig</a>
+        <a href="#">tw</a>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><strong data-count="48">0</strong><span>Happy travelers served (k)</span></div>
+        <div class="stat"><strong data-count="11">0</strong><span>Years in the industry</span></div>
+        <div class="stat"><strong data-count="90">0</strong><span>Destinations covered</span></div>
       </div>
     </div>
-    <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none;" />
-    <div id="import-status" class="error-box" style="display:none;"></div>
-
-    <div class="history-layout">
-      <div class="folder-sidebar">
-        <div class="folder-sidebar-title">Folders</div>
-        <div id="folder-list"></div>
+    <div class="why-cards">
+      <div class="why-card reveal d1">
+        <div class="why-icon">🧭</div>
+        <div><h4>Local Expertise</h4><p>Our destination specialists craft unique itineraries built on insider knowledge you won't find in a guidebook.</p></div>
       </div>
-      <div class="history-main">
-        <div class="toolbar" id="bulk-toolbar" style="display:none;">
-          <div class="count" id="bulk-count"></div>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" id="bulk-add-folder">+ Add selected to folder</button>
-            <button class="btn" id="bulk-clear">Clear selection</button>
+      <div class="why-card reveal d2">
+        <div class="why-icon">✓</div>
+        <div><h4>All-in-One Booking</h4><p>Flights, stays, and experiences booked in one place — fast, transparent, and free of hidden fees.</p></div>
+      </div>
+      <div class="why-card reveal d3">
+        <div class="why-icon">🎧</div>
+        <div><h4>24/7 Support</h4><p>Real people, real help — anytime, anywhere, before, during, or after your trip.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="destinations">
+  <div class="wrap">
+    <div class="destinations reveal">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow-sm">Top destinations</span>
+          <h2>From island escapes to mountain towns, discover where your next journey takes you</h2>
+        </div>
+        <p>Every listing is scouted and rated by our own travel team before it ever reaches you.</p>
+      </div>
+
+      <div class="dest-grid" id="destGrid">
+        <div class="dest-card">
+          <div class="dest-img">
+            <div class="imgph"><span class="imgph-label">400×400</span></div>
+            <span class="dest-price">from $499</span>
+          </div>
+          <div class="dest-body">
+            <h3>Coral Bay</h3>
+            <div class="dest-meta"><span>Beach paradise</span><span class="rating">★ 4.8 (1.2k)</span></div>
+            <span class="dest-loc">Palawan Region</span>
           </div>
         </div>
-        <div class="card" style="overflow:hidden;">
-          <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:34px;"><input type="checkbox" id="select-all-checkbox" /></th>
-                <th>Company</th><th>Status</th><th>Website</th><th>Phone</th><th>Email</th><th>Notes</th><th>Updated</th>
-              </tr>
-            </thead>
-            <tbody id="history-body"></tbody>
-          </table>
+        <div class="dest-card">
+          <div class="dest-img">
+            <div class="imgph"><span class="imgph-label">400×400</span></div>
+            <span class="dest-price">from $320</span>
+          </div>
+          <div class="dest-body">
+            <h3>Cedar Hollow</h3>
+            <div class="dest-meta"><span>Mountain getaway</span><span class="rating">★ 4.6 (950)</span></div>
+            <span class="dest-loc">Highland Province</span>
           </div>
         </div>
-        <p class="foot-note" id="history-count"></p>
+        <div class="dest-card">
+          <div class="dest-img">
+            <div class="imgph"><span class="imgph-label">400×400</span></div>
+            <span class="dest-price">from $580</span>
+          </div>
+          <div class="dest-body">
+            <h3>Siren Cove</h3>
+            <div class="dest-meta"><span>Surf & chill</span><span class="rating">★ 4.9 (2.0k)</span></div>
+            <span class="dest-loc">Sungara Coast</span>
+          </div>
+        </div>
+        <div class="dest-card">
+          <div class="dest-img">
+            <div class="imgph"><span class="imgph-label">400×400</span></div>
+            <span class="dest-price">from $425</span>
+          </div>
+          <div class="dest-body">
+            <h3>Vignar Old Town</h3>
+            <div class="dest-meta"><span>Heritage city</span><span class="rating">★ 4.7 (780)</span></div>
+            <span class="dest-loc">Ilocos Region</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-more-row">
+        <a href="destinations.html" class="btn-outline">View More Destinations</a>
+        <div class="carousel-dots">
+          <button aria-label="Previous" id="destPrev">‹</button>
+          <button aria-label="Next" id="destNext">›</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="modal-overlay" id="folder-modal" style="display:none;">
-  <div class="modal-box">
-    <p class="modal-title">Where should this be saved?</p>
-    <p class="modal-sub"><span id="modal-company-count">0</span> companies found. Pick a folder to keep this batch organized in your saved history.</p>
+<section id="packages">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div>
+        <span class="eyebrow-sm">Tour packages</span>
+        <h2>Affordable, customizable, and genuinely unforgettable adventures</h2>
+      </div>
+      <p>Group tours, private charters, and fully custom itineraries — built around how you like to travel.</p>
+    </div>
 
-    <label class="modal-field-label" for="modal-folder-select">Choose an existing folder</label>
-    <select class="modal-select" id="modal-folder-select">
-      <option value="">Uncategorized</option>
-    </select>
-
-    <label class="modal-field-label" for="modal-folder-new">...or create a new one</label>
-    <input type="text" class="modal-input" id="modal-folder-new" placeholder="e.g. Textile Indonesia — July 2026" />
-
-    <div class="modal-actions">
-      <button class="btn" id="modal-cancel">Cancel</button>
-      <button class="btn btn-primary" id="modal-confirm">Continue</button>
+    <div class="pkg-grid">
+      <div class="pkg-lead reveal">
+        <div>
+          <h3>Tour Packages</h3>
+          <p>Affordable, customizable, and unforgettable adventures for every kind of traveler — solo, couples, families, and groups.</p>
+        </div>
+        <a href="packages.html" class="btn-ghost">Browse All Packages</a>
+      </div>
+      <div class="pkg-card reveal d1">
+        <div class="imgph"><span class="imgph-label">600×700</span></div>
+        <div class="pkg-tag">⛵</div>
+        <div class="pkg-info">
+          <h4>Island Hopper Adventure</h4>
+          <p>Beach to beach by boat, with guided snorkeling and a sunset cruise.</p>
+        </div>
+      </div>
+      <div class="pkg-card reveal d2">
+        <div class="imgph"><span class="imgph-label">600×700</span></div>
+        <div class="pkg-tag">⛰</div>
+        <div class="pkg-info">
+          <h4>Northern Highland Escape</h4>
+          <p>Cool mountain air, scenic viewpoints, food trails, and local craft markets.</p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="steps-head reveal">
+      <span class="eyebrow-sm">How it works</span>
+      <h2>Booking made as easy as 1-2-3</h2>
+    </div>
+    <div class="steps-row">
+      <div class="step reveal d1">
+        <div class="step-num">01</div>
+        <h4>Pick Your Destination</h4>
+        <p>Browse curated destinations and packages, filtered by budget, season, and travel style.</p>
+      </div>
+      <div class="step reveal d2">
+        <div class="step-num">02</div>
+        <h4>Customize Your Tour</h4>
+        <p>Adjust dates, add activities, and upgrade stays — a few clicks, no back-and-forth emails.</p>
+      </div>
+      <div class="step reveal d3">
+        <div class="step-num">03</div>
+        <h4>Confirm & Travel</h4>
+        <p>Secure your booking and get a full itinerary with 24/7 support for the whole trip.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stories">
+  <div class="wrap">
+    <div class="testimonials reveal">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow-sm">Traveler stories</span>
+          <h2>What our travelers say after coming home</h2>
+        </div>
+      </div>
+      <div class="test-grid">
+        <div class="test-card">
+          <div class="test-stars">★★★★★</div>
+          <p>"Every detail was handled before we even thought to ask. The itinerary felt like it was built by someone who actually knew the region."</p>
+          <div class="test-person">
+            <div class="test-avatar"><div class="imgph"></div></div>
+            <div><strong>Maya R.</strong><span>Solo traveler, Coral Bay trip</span></div>
+          </div>
+        </div>
+        <div class="test-card">
+          <div class="test-stars">★★★★★</div>
+          <p>"Support answered at 2am when our flight got delayed and had a new plan ready before we landed. Genuinely stress-free."</p>
+          <div class="test-person">
+            <div class="test-avatar"><div class="imgph"></div></div>
+            <div><strong>Daniel K.</strong><span>Family trip, Vignar Old Town</span></div>
+          </div>
+        </div>
+        <div class="test-card">
+          <div class="test-stars">★★★★★</div>
+          <p>"Best value we've found for a private tour. Local guides made it — the kind of trip you can't book from a generic site."</p>
+          <div class="test-person">
+            <div class="test-avatar"><div class="imgph"></div></div>
+            <div><strong>Priya & Aaron</strong><span>Couple's trip, Siren Cove</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="marquee-wrap">
+        <div class="marquee-track">
+          <span>FEATURED IN</span><span>TRAVEL WEEKLY</span><span>WANDER MAG</span><span>GLOBE DAILY</span><span>OFFROUTE</span>
+          <span>FEATURED IN</span><span>TRAVEL WEEKLY</span><span>WANDER MAG</span><span>GLOBE DAILY</span><span>OFFROUTE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="newsletter reveal">
+      <div>
+        <h3>Get new destinations and fare drops in your inbox</h3>
+        <p>One email a week. No spam, unsubscribe anytime.</p>
+      </div>
+      <form class="newsletter-form">
+        <input type="email" placeholder="Enter your email address" required>
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="foot-logo">WANDERLY</div>
+        <p>An independent travel studio building custom itineraries and guided tours since 2014.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Explore</h5>
+        <ul>
+          <li><a href="#">Destinations</a></li>
+          <li><a href="#">Tour Packages</a></li>
+          <li><a href="#">Travel Blog</a></li>
+          <li><a href="#">Gift Cards</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h5>Support</h5>
+        <ul>
+          <li><a href="#">Help Center</a></li>
+          <li><a href="#">Booking Terms</a></li>
+          <li><a href="#">Cancellations</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Wanderly Travel Co. All rights reserved.</span>
+      <span>Made for wanderers, everywhere.</span>
+    </div>
+  </div>
+</footer>
 
 <script>
-const BADGE_LABEL = {
-  active: "Active", unclear: "Unclear", not_found: "Not found",
-  error: "Error", pending: "Waiting", running: "Searching…",
-};
-
-let companies = [];
-let results = {};
-let running = false;
-let historyRows = [];
-let activeFolder = null; // null = "All"
-let knownFolders = [];
-let selectedNames = new Set();
-
-let selectedFolder = null; // the folder chosen via modal for the current upload batch
-let pendingParsedData = null; // rows waiting on folder confirmation
-
-const folderModal = document.getElementById("folder-modal");
-const modalFolderSelect = document.getElementById("modal-folder-select");
-const modalFolderNew = document.getElementById("modal-folder-new");
-const modalCompanyCount = document.getElementById("modal-company-count");
-const modalCancel = document.getElementById("modal-cancel");
-const modalConfirm = document.getElementById("modal-confirm");
-const currentFolderLabel = document.getElementById("current-folder-label");
-const changeFolderLink = document.getElementById("change-folder-link");
-const folderList = document.getElementById("folder-list");
-
-const tabUpload = document.getElementById("tab-upload");
-const tabHistory = document.getElementById("tab-history");
-const viewUpload = document.getElementById("view-upload");
-const viewHistory = document.getElementById("view-history");
-
-const dropzone = document.getElementById("dropzone");
-const dropzoneText = document.getElementById("dropzone-text");
-const fileInput = document.getElementById("file-input");
-const errorBox = document.getElementById("error-box");
-const content = document.getElementById("content");
-const countText = document.getElementById("count-text");
-const runBtn = document.getElementById("run-btn");
-const exportBtn = document.getElementById("export-btn");
-const tableBody = document.getElementById("table-body");
-
-const historyBody = document.getElementById("history-body");
-const historySearch = document.getElementById("history-search");
-const historyRefresh = document.getElementById("history-refresh");
-const historyExport = document.getElementById("history-export");
-const historyImport = document.getElementById("history-import");
-const importFileInput = document.getElementById("import-file-input");
-const importStatus = document.getElementById("import-status");
-const historyCount = document.getElementById("history-count");
-const bulkToolbar = document.getElementById("bulk-toolbar");
-const bulkCount = document.getElementById("bulk-count");
-const bulkAddFolder = document.getElementById("bulk-add-folder");
-const bulkClear = document.getElementById("bulk-clear");
-const selectAllCheckbox = document.getElementById("select-all-checkbox");
-
-historyImport.addEventListener("click", () => importFileInput.click());
-importFileInput.addEventListener("change", (e) => {
-  if (e.target.files[0]) handleImportFile(e.target.files[0]);
-  importFileInput.value = "";
-});
-
-function handleImportFile(file) {
-  importStatus.style.display = "none";
-  const targetFolder = window.prompt("Save this import into which folder? (leave blank for Uncategorized)", "") || "";
-  parseSpreadsheet(file)
-    .then(async (data) => {
-      const keys = data.length ? Object.keys(data[0]) : [];
-      const nameKey = keys.find((k) => /^(company|name)/i.test(k.trim()));
-      if (!nameKey) {
-        showImportStatus("Couldn't find a company name column in this file.", true);
-        return;
-      }
-      const find = (row, patterns) => {
-        const k = keys.find((key) => patterns.test(key.trim()));
-        return k ? (row[k] || "").toString().trim() : "";
-      };
-      const rows = data
-        .map((row) => ({
-          name: (row[nameKey] || "").toString().trim(),
-          country: find(row, /^country/i),
-          status: find(row, /^status/i) || "unclear",
-          website: find(row, /^website/i),
-          phone: find(row, /^phone/i),
-          email: find(row, /^email/i),
-          notes: find(row, /^notes/i),
-        }))
-        .filter((r) => r.name);
-
-      if (!rows.length) {
-        showImportStatus("File is empty or has no valid company names.", true);
-        return;
-      }
-
-      historyImport.disabled = true;
-      historyImport.textContent = "⏳ Importing...";
-      try {
-        const resp = await fetch("/api/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rows, folder: targetFolder.trim() || undefined }),
-        });
-        const respData = await resp.json();
-        if (!resp.ok) throw new Error(respData.error || "Import failed");
-        showImportStatus(`Successfully imported ${respData.imported} companies into "${respData.folder}".`, false);
-        loadHistory();
-      } catch (err) {
-        showImportStatus(err.message || "Import failed", true);
-      }
-      historyImport.disabled = false;
-      historyImport.innerHTML = "↑&nbsp; Import old file";
-    })
-    .catch((err) => showImportStatus(err.message || "Could not read the file", true));
-}
-
-function showImportStatus(msg, isError) {
-  importStatus.textContent = msg;
-  importStatus.style.display = "block";
-  importStatus.style.background = isError ? "var(--danger-tint)" : "var(--success-tint)";
-  importStatus.style.color = isError ? "#B42318" : "#067647";
-  importStatus.style.borderColor = isError ? "#FECDCA" : "#ABEFC6";
-}
-
-tabUpload.addEventListener("click", () => switchTab("upload"));
-tabHistory.addEventListener("click", () => switchTab("history"));
-
-async function refreshKnownFolders() {
-  try {
-    const resp = await fetch("/api/history");
-    const data = await resp.json();
-    if (!resp.ok) return;
-    const folderSet = new Set();
-    (data.rows || []).forEach((r) => (r.folders || []).forEach((f) => folderSet.add(f)));
-    knownFolders = Array.from(folderSet).sort();
-  } catch (err) {
-    // Non-fatal: modal just falls back to whatever folders were already known.
-  }
-}
-
-function populateModalFolderDropdown() {
-  modalFolderSelect.innerHTML = '<option value="">Uncategorized</option>' +
-    knownFolders.filter((f) => f !== "Uncategorized").map((f) => `<option value="${escapeAttr(f)}">${escapeHtml(f)}</option>`).join("");
-}
-
-async function openFolderModal() {
-  modalFolderNew.value = "";
-  modalFolderSelect.value = "";
-  modalCompanyCount.textContent = companies.length;
-  modalFolderSelect.disabled = true;
-  modalFolderSelect.innerHTML = '<option>Loading folders...</option>';
-  folderModal.style.display = "flex";
-  await refreshKnownFolders();
-  populateModalFolderDropdown();
-  modalFolderSelect.disabled = false;
-}
-
-function closeFolderModal() {
-  folderModal.style.display = "none";
-}
-
-modalCancel.addEventListener("click", () => {
-  // Cancelling on first upload just defaults to Uncategorized and proceeds;
-  // cancelling a "Change" edit just keeps the previous selection.
-  closeFolderModal();
-  if (content.style.display === "none") {
-    selectedFolder = null;
-    finishUploadSetup();
-  }
-});
-
-modalConfirm.addEventListener("click", () => {
-  const typed = modalFolderNew.value.trim();
-  selectedFolder = typed || modalFolderSelect.value || null;
-  currentFolderLabel.textContent = selectedFolder || "Uncategorized";
-  closeFolderModal();
-  finishUploadSetup();
-});
-
-changeFolderLink.addEventListener("click", () => openFolderModal());
-
-function getSelectedFolder() {
-  return selectedFolder;
-}
-
-function switchTab(which) {
-  const isUpload = which === "upload";
-  tabUpload.classList.toggle("active", isUpload);
-  tabHistory.classList.toggle("active", !isUpload);
-  viewUpload.style.display = isUpload ? "block" : "none";
-  viewHistory.style.display = isUpload ? "none" : "block";
-  if (!isUpload) loadHistory();
-}
-async function loadHistory(query) {
-  historyBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-faint); padding:24px;">Loading...</td></tr>`;
-  try {
-    const url = "/api/history" + (query ? `?q=${encodeURIComponent(query)}` : "");
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "Failed to load history");
-    historyRows = data.rows || [];
-
-    // Derive the folder list client-side from whatever rows we have.
-    const folderSet = new Set();
-    historyRows.forEach((r) => (r.folders || []).forEach((f) => folderSet.add(f)));
-    knownFolders = Array.from(folderSet).sort();
-
-    renderFolderSidebar();
-    renderHistory();
-  } catch (err) {
-    historyBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#B42318; padding:24px;">${escapeHtml(err.message)}</td></tr>`;
-  }
-}
-
-function renderFolderSidebar() {
-  const counts = {};
-  historyRows.forEach((r) => (r.folders || []).forEach((f) => (counts[f] = (counts[f] || 0) + 1)));
-  const allItem = `<div class="folder-item ${activeFolder === null ? 'active' : ''}" data-folder="">
-    <span>All companies</span><span class="count">${historyRows.length}</span>
-  </div>`;
-  const items = knownFolders.map((f) => `<div class="folder-item ${activeFolder === f ? 'active' : ''}" data-folder="${escapeAttr(f)}">
-    <span>${escapeHtml(f)}</span><span class="count">${counts[f] || 0}</span>
-  </div>`).join("");
-  folderList.innerHTML = allItem + items;
-  folderList.querySelectorAll(".folder-item").forEach((el) => {
-    el.addEventListener("click", () => {
-      activeFolder = el.dataset.folder || null;
-      renderFolderSidebar();
-      renderHistory();
+  // mobile menu toggle
+  const navToggle = document.getElementById('navToggle');
+  const navMobile = document.getElementById('navMobile');
+  navToggle.addEventListener('click', ()=>{
+    const isOpen = navMobile.classList.toggle('open');
+    navToggle.classList.toggle('open', isOpen);
+    navToggle.setAttribute('aria-expanded', isOpen);
+  });
+  navMobile.querySelectorAll('a').forEach(a=>{
+    a.addEventListener('click', ()=>{
+      navMobile.classList.remove('open');
+      navToggle.classList.remove('open');
+      navToggle.setAttribute('aria-expanded','false');
     });
   });
-}
 
-function renderHistory() {
-  const visibleRows = activeFolder
-    ? historyRows.filter((r) => (r.folders || []).includes(activeFolder))
-    : historyRows;
-
-  historyCount.textContent = visibleRows.length
-    ? `${visibleRows.length} companies${activeFolder ? ` in "${activeFolder}"` : " saved"}`
-    : "No saved data yet — start screening in the Upload & Screening tab.";
-  historyBody.innerHTML = visibleRows.map((r) => {
-    const label = BADGE_LABEL[r.status] || r.status || "—";
-    const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—";
-    const checked = selectedNames.has(r.name) ? "checked" : "";
-    return `<tr>
-      <td><input type="checkbox" class="row-checkbox" data-name="${escapeAttr(r.name)}" ${checked} /></td>
-      <td class="company-name">${escapeHtml(r.name)}</td>
-      <td><span class="badge badge-${r.status || 'pending'}">${label}</span></td>
-      <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
-      <td class="mono">${escapeHtml(r.phone || "—")}</td>
-      <td class="mono">${escapeHtml(r.email || "—")}</td>
-      <td class="notes-cell">${escapeHtml(r.notes || "")}</td>
-      <td class="notes-cell">${updated}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="8" style="text-align:center; color:var(--text-faint); padding:24px;">No data yet.</td></tr>`;
-
-  historyBody.querySelectorAll(".row-checkbox").forEach((cb) => {
-    cb.addEventListener("change", () => {
-      if (cb.checked) selectedNames.add(cb.dataset.name);
-      else selectedNames.delete(cb.dataset.name);
-      updateBulkToolbar();
-    });
-  });
-  selectAllCheckbox.checked = visibleRows.length > 0 && visibleRows.every((r) => selectedNames.has(r.name));
-  updateBulkToolbar();
-}
-
-function updateBulkToolbar() {
-  bulkToolbar.style.display = selectedNames.size > 0 ? "flex" : "none";
-  bulkCount.innerHTML = `<strong>${selectedNames.size}</strong> selected`;
-}
-
-selectAllCheckbox.addEventListener("change", () => {
-  const visibleRows = activeFolder
-    ? historyRows.filter((r) => (r.folders || []).includes(activeFolder))
-    : historyRows;
-  if (selectAllCheckbox.checked) {
-    visibleRows.forEach((r) => selectedNames.add(r.name));
-  } else {
-    visibleRows.forEach((r) => selectedNames.delete(r.name));
-  }
-  renderHistory();
-});
-
-bulkClear.addEventListener("click", () => {
-  selectedNames.clear();
-  renderHistory();
-});
-
-bulkAddFolder.addEventListener("click", async () => {
-  const folderName = window.prompt("Add the selected companies to which folder?", "");
-  if (!folderName || !folderName.trim()) return;
-
-  const rowsToTag = historyRows.filter((r) => selectedNames.has(r.name));
-  bulkAddFolder.disabled = true;
-  bulkAddFolder.textContent = "Adding...";
-  try {
-    const resp = await fetch("/api/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rows: rowsToTag.map((r) => ({
-          name: r.name, country: r.country, status: r.status,
-          website: r.website, phone: r.phone, email: r.email, notes: r.notes,
-        })),
-        folder: folderName.trim(),
-      }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "Failed to update folder");
-    selectedNames.clear();
-    await loadHistory(historySearch.value.trim());
-  } catch (err) {
-    alert(err.message || "Failed to update folder");
-  }
-  bulkAddFolder.disabled = false;
-  bulkAddFolder.textContent = "+ Add selected to folder";
-});
-
-let searchDebounce;
-historySearch.addEventListener("input", () => {
-  clearTimeout(searchDebounce);
-  searchDebounce = setTimeout(() => loadHistory(historySearch.value.trim()), 350);
-});
-historyRefresh.addEventListener("click", () => loadHistory(historySearch.value.trim()));
-historyExport.addEventListener("click", () => {
-  const visibleRows = activeFolder
-    ? historyRows.filter((r) => (r.folders || []).includes(activeFolder))
-    : historyRows;
-  const rows = visibleRows.map((r) => ({
-    Company: r.name, Country: r.country || "", Status: r.status || "",
-    Website: r.website || "", Phone: r.phone || "", Email: r.email || "",
-    Notes: r.notes || "", Folder: activeFolder || "All", "Updated At": r.updated_at || "",
-  }));
-  downloadAsXlsx(rows, "company-screener-history.xlsx");
-});
-
-// Downloads an array of row objects as a real .xlsx file with proper columns,
-// so it opens correctly in Excel regardless of the user's regional CSV
-// delimiter settings (e.g. Indonesia defaults to semicolon, not comma).
-function downloadAsXlsx(rows, filename) {
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-  const colWidths = Object.keys(rows[0] || {}).map((key) => {
-    const maxLen = rows.reduce((max, r) => Math.max(max, String(r[key] ?? "").length), key.length);
-    return { wch: Math.min(Math.max(maxLen + 2, 10), 60) };
-  });
-  worksheet["!cols"] = colWidths;
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-  XLSX.writeFile(workbook, filename);
-}
-
-fileInput.addEventListener("change", (e) => {
-  if (e.target.files[0]) handleFile(e.target.files[0]);
-});
-dropzone.addEventListener("dragover", (e) => e.preventDefault());
-dropzone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-
-function isExcelFile(file) {
-  return /\.(xlsx|xls)$/i.test(file.name);
-}
-
-// Parses a File (CSV or XLSX) and returns a Promise resolving to an array
-// of row objects, using the first row as headers — mirrors PapaParse's output.
-function parseSpreadsheet(file) {
-  return new Promise((resolve, reject) => {
-    if (isExcelFile(file)) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const workbook = XLSX.read(e.target.result, { type: "array" });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-          resolve(rows);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = () => reject(new Error("Could not read the file"));
-      reader.readAsArrayBuffer(file);
-    } else {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (res) => resolve(res.data),
-        error: (err) => reject(err),
-      });
-    }
-  });
-}
-
-function handleFile(file) {
-  errorBox.style.display = "none";
-  dropzoneText.textContent = file.name;
-  dropzone.classList.add("has-file");
-  parseSpreadsheet(file)
-    .then((data) => {
-      companies = extractCompanyList(data);
-      if (!companies.length) {
-        showError("No company names found. Make sure there's a column named 'company' or 'name'.");
-        return;
-      }
-      results = {};
-      exportBtn.style.display = "none";
-      openFolderModal();
-    })
-    .catch((err) => showError(err.message || "Could not read the file"));
-}
-
-function finishUploadSetup() {
-  content.style.display = "block";
-  currentFolderLabel.textContent = selectedFolder || "Uncategorized";
-  renderTable();
-  countText.innerHTML = "<strong>" + companies.length + "</strong> companies found";
-}
-
-function extractCompanyList(rows) {
-  if (!rows.length) return [];
-  const keys = Object.keys(rows[0]);
-  const nameKey = keys.find((k) => /^(company|name)/i.test(k.trim())) || keys[0];
-  const countryKey = keys.find((k) => /^country/i.test(k.trim()));
-  return rows
-    .map((r) => ({
-      name: (r[nameKey] || "").toString().trim(),
-      country: countryKey ? (r[countryKey] || "").toString().trim() : "",
-    }))
-    .filter((r) => r.name.length > 0);
-}
-
-function showError(msg) {
-  errorBox.textContent = msg;
-  errorBox.style.display = "block";
-}
-
-function renderTable() {
-  tableBody.innerHTML = companies.map((c) => {
-    const r = results[c.name] || { status: "idle" };
-    const label = BADGE_LABEL[r.status] || "—";
-    const icon = r.status === "running" ? '<span class="spin">↻</span>' :
-                 r.status === "active" ? "●" :
-                 (r.status === "not_found" || r.status === "error") ? "●" : "";
-    const cachedTag = r.cached ? '<span class="badge badge-cached" style="margin-left:6px;">saved</span>' : "";
-    return `<tr>
-      <td class="company-name">${escapeHtml(c.name)}</td>
-      <td><span class="badge badge-${r.status || 'pending'}">${icon} ${label}</span>${cachedTag}</td>
-      <td class="mono">${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank">${escapeHtml(r.website.replace(/^https?:\/\//, ""))}</a>` : "—"}</td>
-      <td class="mono">${escapeHtml(r.phone || "—")}</td>
-      <td class="mono">${escapeHtml(r.email || "—")}</td>
-      <td class="notes-cell">${escapeHtml(r.notes || "")}</td>
-    </tr>`;
-  }).join("");
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
-}
-function escapeAttr(str) { return escapeHtml(str); }
-
-function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
-
-async function screenCompany(company) {
-  const resp = await fetch("/api/screen", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: company.name, country: company.country, folder: getSelectedFolder() }),
-  });
-  const data = await resp.json();
-  if (!resp.ok) {
-    const err = new Error(data.error || "Request failed");
-    err.isRateLimit = resp.status === 429 || /429|rate.?limit/i.test(data.error || "");
-    throw err;
-  }
-  return data;
-}
-
-runBtn.addEventListener("click", async () => {
-  if (running) return;
-  running = true;
-  runBtn.textContent = "⏳ Running...";
-  runBtn.disabled = true;
-
-  results = {};
-  companies.forEach((c) => (results[c.name] = { status: "pending" }));
-  renderTable();
-
-  for (let i = 0; i < companies.length; i++) {
-    const company = companies[i];
-    results[company.name] = { status: "running" };
-    renderTable();
-
-    let attempt = 0;
-    while (true) {
-      try {
-        const result = await screenCompany(company);
-        results[company.name] = result;
-        break;
-      } catch (err) {
-        attempt++;
-        if (err.isRateLimit && attempt <= 2) {
-          results[company.name] = { status: "running" };
-          renderTable();
-          await sleep(15000);
-          continue;
-        }
-        results[company.name] = { status: "error", notes: err.message || "Failed to process" };
-        break;
-      }
-    }
-    renderTable();
-  }
-
-  running = false;
-  runBtn.innerHTML = "▶&nbsp; Start screening";
-  runBtn.disabled = false;
-  exportBtn.style.display = "inline-flex";
-});
-
-exportBtn.addEventListener("click", () => {
-  const rows = companies.map((c) => {
-    const r = results[c.name] || {};
-    return {
-      Company: c.name,
-      Country: c.country || "",
-      Status: r.status || "pending",
-      Website: r.website || "",
-      Phone: r.phone || "",
-      Email: r.email || "",
-      Notes: r.notes || "",
+  // destination horizontal scroll arrows (mobile)
+  const destGrid = document.getElementById('destGrid');
+  const destPrev = document.getElementById('destPrev');
+  const destNext = document.getElementById('destNext');
+  if(destGrid && destPrev && destNext){
+    const scrollByCard = (dir)=>{
+      const card = destGrid.querySelector('.dest-card');
+      const amount = card ? card.getBoundingClientRect().width + 14 : 260;
+      destGrid.scrollBy({left: dir*amount, behavior:'smooth'});
     };
-  });
-  downloadAsXlsx(rows, "company-screening-results.xlsx");
-});
+    destPrev.addEventListener('click', ()=>scrollByCard(-1));
+    destNext.addEventListener('click', ()=>scrollByCard(1));
+  }
+
+  // scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:0.15});
+  revealEls.forEach(el=>io.observe(el));
+
+  // animated counters
+  const counters = document.querySelectorAll('[data-count]');
+  const cio = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const el = e.target;
+        const target = parseInt(el.dataset.count, 10);
+        const dur = 1400;
+        const start = performance.now();
+        function tick(now){
+          const p = Math.min((now-start)/dur, 1);
+          const eased = 1 - Math.pow(1-p, 3);
+          el.textContent = Math.round(eased*target) + (target>=90?'+':target===48?'k+':'');
+          if(p<1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        cio.unobserve(el);
+      }
+    });
+  }, {threshold:0.5});
+  counters.forEach(el=>cio.observe(el));
 </script>
+
 </body>
 </html>
