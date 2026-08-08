@@ -29,6 +29,10 @@
     --radius: 10px;
   }
   * { box-sizing: border-box; }
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     margin: 0;
     background: var(--bg);
@@ -39,6 +43,7 @@
   .topbar {
     background: var(--surface); border-bottom: 1px solid var(--border);
     padding: 16px 32px; display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 50;
   }
   .topbar-logo {
     width: 30px; height: 30px; border-radius: 8px; background: var(--primary);
@@ -170,6 +175,7 @@
   @media (max-width: 720px) {
     .history-layout { flex-direction: column; }
     .folder-sidebar { width: 100%; }
+    #folder-list { max-height: 200px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   }
 
   .modal-overlay {
