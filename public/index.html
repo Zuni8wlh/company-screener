@@ -107,6 +107,7 @@
   tbody tr:hover { background: #FAFBFF; }
   tbody tr.selected { background: var(--primary-tint); }
   tbody tr.selected:hover { background: var(--primary-tint); }
+  #history-body tr { cursor: pointer; }
   .company-name { font-weight: 600; color: var(--text); }
   .mono { font-variant-numeric: tabular-nums; font-size: 13px; }
   .notes-cell { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
@@ -569,7 +570,7 @@ function renderHistory() {
     const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—";
     const checked = selectedNames.has(r.name) ? "checked" : "";
     const selectedClass = selectedNames.has(r.name) ? " selected" : "";
-    return `<tr class="${selectedClass.trim()}">
+    return `<tr class="${selectedClass.trim()}" data-name="${escapeAttr(r.name)}">
       <td><input type="checkbox" class="row-checkbox" data-name="${escapeAttr(r.name)}" ${checked} /></td>
       <td class="company-name">${escapeHtml(r.name)}</td>
       <td><span class="badge badge-${r.status || 'pending'}">${label}</span></td>
@@ -587,6 +588,15 @@ function renderHistory() {
       else selectedNames.delete(cb.dataset.name);
       cb.closest("tr").classList.toggle("selected", cb.checked);
       updateBulkToolbar();
+    });
+  });
+  historyBody.querySelectorAll("tr[data-name]").forEach((row) => {
+    row.addEventListener("click", (e) => {
+      // Don't double-toggle when the click was on the checkbox itself or a link (website url).
+      if (e.target.closest("input,a")) return;
+      const cb = row.querySelector(".row-checkbox");
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event("change"));
     });
   });
   selectAllCheckbox.checked = visibleRows.length > 0 && visibleRows.every((r) => selectedNames.has(r.name));
