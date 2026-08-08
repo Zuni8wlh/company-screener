@@ -35,6 +35,7 @@
     color: var(--text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
+    touch-action: pan-y;
   }
   .topbar {
     background: var(--surface); border-bottom: 1px solid var(--border);
@@ -94,7 +95,7 @@
   .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
   .btn:disabled { opacity: 0.55; cursor: default; }
 
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
   table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; }
   thead tr { background: #F9FAFB; }
   th {
