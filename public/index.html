@@ -29,10 +29,6 @@
     --radius: 10px;
   }
   * { box-sizing: border-box; }
-  html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
   body {
     margin: 0;
     background: var(--bg);
@@ -239,7 +235,7 @@
       <p class="current-folder-line">Saving into folder: <strong id="current-folder-label">Uncategorized</strong> — <a id="change-folder-link">Change</a></p>
       <div class="toolbar">
         <div class="count" id="count-text"></div>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn btn-primary" id="run-btn">▶&nbsp; Start screening</button>
           <button class="btn" id="export-btn" style="display:none;">↓&nbsp; Export Excel</button>
         </div>
@@ -263,7 +259,7 @@
   <div id="view-history" style="display:none;">
     <div class="toolbar">
       <input type="text" id="history-search" class="search-input" placeholder="Search company name..." />
-      <div style="display:flex; gap:10px;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn" id="history-import">↑&nbsp; Import old file</button>
         <button class="btn" id="history-refresh">↻&nbsp; Refresh</button>
         <button class="btn" id="history-export">↓&nbsp; Export Excel</button>
@@ -280,7 +276,7 @@
       <div class="history-main">
         <div class="toolbar" id="bulk-toolbar" style="display:none;">
           <div class="count" id="bulk-count"></div>
-          <div style="display:flex; gap:10px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button class="btn btn-primary" id="bulk-add-folder">+ Add selected to folder</button>
             <button class="btn" id="bulk-clear">Clear selection</button>
           </div>
