@@ -105,6 +105,8 @@
   td { padding: 14px 18px; border-bottom: 1px solid #F2F4F7; vertical-align: top; }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover { background: #FAFBFF; }
+  tbody tr.selected { background: var(--primary-tint); }
+  tbody tr.selected:hover { background: var(--primary-tint); }
   .company-name { font-weight: 600; color: var(--text); }
   .mono { font-variant-numeric: tabular-nums; font-size: 13px; }
   .notes-cell { color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
@@ -172,6 +174,7 @@
   @media (max-width: 720px) {
     .history-layout { flex-direction: column; }
     .folder-sidebar { width: 100%; }
+    .history-main { width: 100%; }
     #folder-list { max-height: 200px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   }
 
@@ -565,7 +568,8 @@ function renderHistory() {
     const label = BADGE_LABEL[r.status] || r.status || "—";
     const updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—";
     const checked = selectedNames.has(r.name) ? "checked" : "";
-    return `<tr>
+    const selectedClass = selectedNames.has(r.name) ? " selected" : "";
+    return `<tr class="${selectedClass.trim()}">
       <td><input type="checkbox" class="row-checkbox" data-name="${escapeAttr(r.name)}" ${checked} /></td>
       <td class="company-name">${escapeHtml(r.name)}</td>
       <td><span class="badge badge-${r.status || 'pending'}">${label}</span></td>
@@ -581,6 +585,7 @@ function renderHistory() {
     cb.addEventListener("change", () => {
       if (cb.checked) selectedNames.add(cb.dataset.name);
       else selectedNames.delete(cb.dataset.name);
+      cb.closest("tr").classList.toggle("selected", cb.checked);
       updateBulkToolbar();
     });
   });
