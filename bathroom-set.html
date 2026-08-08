@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formeland — Bathroom Collection</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --panel:#F4F4F4;
+    --ink:#111111;
+    --grey-600:#5A5A5A;
+    --grey-400:#8C8C8C;
+    --line:#E1E1E1;
+    --radius-lg:20px;
+    --radius-md:12px;
+    --radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .topbar{
+    width:100%;
+    border-bottom:1px solid var(--line);
+    padding:18px 24px;
+  }
+  .back-link{
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.01em;
+    color:var(--ink);
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .back-link:hover{ color:var(--grey-600); }
+  .wrap{
+    max-width:1040px;
+    width:100%;
+    padding:48px 24px;
+    display:grid;
+    grid-template-columns:1.05fr 1fr;
+    column-gap:72px;
+    align-items:start;
+  }
+  .stage-col, .info-col{
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---- PRODUCT IMAGE STAGE ---- */
+  .stage{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    aspect-ratio:1/1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .stage img{
+    width:92%;
+    height:92%;
+    object-fit:contain;
+    transition:opacity .2s ease;
+    border-radius:var(--radius-sm);
+  }
+  .stage img.swap{ opacity:0; }
+  .stage-meta{
+    position:absolute;
+    top:0; left:0; right:0;
+    display:flex;
+    justify-content:space-between;
+    padding:18px 20px;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--grey-600);
+  }
+  .stage-index{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    display:flex;
+    justify-content:space-between;
+    padding:16px 20px;
+    font-size:11px;
+    letter-spacing:.08em;
+    color:var(--grey-600);
+    border-top:1px solid var(--line);
+    background:rgba(255,255,255,.6);
+    backdrop-filter:blur(2px);
+  }
+  .stage-index span:last-child{color:var(--ink); font-weight:500;}
+
+  /* ---- PRODUCT SWITCHER ---- */
+  .product-switcher{
+    position:relative;
+    margin-bottom:24px;
+  }
+  .switcher-trigger{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    cursor:pointer;
+    font-family:'Inter', sans-serif;
+  }
+  .switcher-trigger-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .switcher-trigger-left img{
+    width:32px;
+    height:32px;
+    object-fit:contain;
+    border-radius:var(--radius-sm);
+    background:#fff;
+    border:1px solid var(--line);
+  }
+  .switcher-label-group span{
+    display:block;
+  }
+  .switcher-eyebrow{
+    font-size:10px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--grey-400);
+  }
+  .switcher-name{
+    font-size:14px;
+    font-weight:500;
+    color:var(--ink);
+  }
+  .chevron{
+    width:18px;
+    height:18px;
+    flex-shrink:0;
+    transition:transform .2s ease;
+    color:var(--grey-600);
+  }
+  .product-switcher.open .chevron{ transform:rotate(180deg); }
+
+  .switcher-panel{
+    position:absolute;
+    top:calc(100% + 8px);
+    left:0;
+    right:0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:8px;
+    box-shadow:0 12px 32px rgba(0,0,0,.08);
+    z-index:20;
+    display:none;
+    max-height:320px;
+    overflow-y:auto;
+  }
+  .product-switcher.open .switcher-panel{ display:block; }
+
+  .switcher-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .switcher-item:hover{ background:var(--panel); }
+  .switcher-item.active{ background:var(--panel); }
+  .switcher-item img{
+    width:40px;
+    height:40px;
+    object-fit:contain;
+    border-radius:var(--radius-sm);
+    background:var(--panel);
+    border:1px solid var(--line);
+  }
+  .switcher-item-name{ font-size:13.5px; font-weight:500; }
+  .switcher-item-count{ font-size:11px; color:var(--grey-400); margin-top:2px; }
+
+  /* ---- INFO ---- */
+  .breadcrumb{
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--grey-400);
+    margin-bottom:16px;
+  }
+  .breadcrumb b{color:var(--ink); font-weight:500;}
+  h1{
+    font-weight:600;
+    font-size:32px;
+    line-height:1.2;
+    letter-spacing:-.01em;
+    margin-bottom:14px;
+  }
+  .desc{
+    font-size:14.5px;
+    font-weight:300;
+    line-height:1.75;
+    color:var(--grey-600);
+    margin-top:24px;
+    max-width:none;
+  }
+
+  .option-label{
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--grey-600);
+    margin-bottom:14px;
+  }
+
+  .selected-color-name{
+    margin-top:14px;
+    font-size:13px;
+    font-weight:500;
+    color:var(--ink);
+  }
+  .selected-color-name span{
+    color:var(--grey-600);
+    font-weight:400;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-size:11px;
+    margin-right:8px;
+  }
+  .selected-color-code{
+    margin-top:4px;
+    font-size:12px;
+    color:var(--grey-600);
+    letter-spacing:.03em;
+  }
+  .selected-color-code b{
+    color:var(--ink);
+    font-weight:600;
+    font-family:'Inter', sans-serif;
+    letter-spacing:.04em;
+  }
+
+  .swatches{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:36px;
+  }
+  .swatch{
+    width:52px;
+    height:52px;
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    background-size:cover;
+    background-position:center;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .swatch:hover{ border-color:var(--grey-400); transform:translateY(-1px); }
+  .swatch.active{
+    border:1.5px solid var(--ink);
+    outline:2px solid #fff;
+    outline-offset:-4px;
+  }
+
+  .save-icon{
+    position:absolute;
+    top:16px;
+    right:16px;
+    z-index:3;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:#fff;
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:var(--ink);
+    transition:background .15s ease, transform .15s ease;
+  }
+  .save-icon:hover{ background:var(--panel); transform:translateY(-1px); }
+  .save-icon svg{ width:17px; height:17px; }
+
+  .specs{
+    display:flex;
+    gap:32px;
+    margin-top:28px;
+  }
+  .specs div{
+    font-size:11px;
+    color:var(--grey-400);
+    letter-spacing:.05em;
+    text-transform:uppercase;
+  }
+  .specs div b{
+    display:block;
+    color:var(--ink);
+    font-size:13px;
+    font-weight:500;
+    text-transform:none;
+    letter-spacing:0;
+    margin-top:4px;
+  }
+
+  @media (max-width:760px){
+    .stage-col, .info-col{ display:contents; }
+    .wrap{
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+    .stage-col > *, .info-col > *{ width:100%; }
+    .stage{ order:1; width:100%; max-width:320px; margin:0 auto; aspect-ratio:1/1.05; }
+    .product-switcher{ order:2; }
+    .swatches-block{ order:3; margin-bottom:0; }
+    .specs{ order:4; margin-top:0; gap:16px; flex-wrap:wrap; }
+    .header-block{ order:5; }
+    .desc-block{ order:6; padding-bottom:0; margin-top:0; }
+
+    .stage-meta{ display:none; }
+    .stage-index{ padding:12px; font-size:9.5px; }
+    .swatches{
+      flex-direction:row;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:0;
+      max-height:none;
+    }
+    .swatch{ width:34px; height:34px; border-radius:50%; }
+    .option-label{ margin-bottom:10px; }
+    .selected-color-name{ margin-top:10px; }
+    h1{font-size:22px; margin-bottom:6px;}
+    .breadcrumb{ margin-bottom:8px; }
+  }
+
+  @media (max-width:420px){
+    .wrap{ padding:28px 14px; column-gap:12px; }
+    .topbar{ padding:14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="back-link">&larr; Back</a>
+</div>
+
+<div class="wrap">
+
+  <div class="stage-col">
+    <div class="stage">
+      <div class="stage-meta">
+        <span>Bathroom Collection</span>
+        <span id="stageCode">01 / 05</span>
+      </div>
+      <button class="save-icon" aria-label="Save" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
+      <img id="productImage" src="" alt="Product">
+      <div class="stage-index">
+        <span>Selected color/motif</span>
+        <span id="stageLabel"></span>
+      </div>
+    </div>
+
+    <p class="desc desc-block" id="productDesc"></p>
+  </div>
+
+  <div class="info-col">
+    <div class="product-switcher" id="productSwitcher">
+      <div class="switcher-trigger" id="switcherTrigger">
+        <div class="switcher-trigger-left">
+          <img id="switcherThumb" src="" alt="">
+          <div class="switcher-label-group">
+            <span class="switcher-eyebrow">Category</span>
+            <span class="switcher-name" id="switcherName"></span>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      <div class="switcher-panel" id="switcherPanel"></div>
+    </div>
+
+    <div class="header-block">
+      <div class="breadcrumb">Bathroom Collection <b id="crumbName"></b></div>
+      <h1 id="productName"></h1>
+    </div>
+
+    <div class="swatches-block">
+      <div class="option-label">Color/Motif</div>
+      <div class="swatches" id="swatchContainer"></div>
+      <div class="selected-color-name">
+        <span>Selected:</span><b id="currentColorName"></b>
+        <div class="selected-color-code">Code: <b id="currentColorCode"></b></div>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div>Material<b id="specMaterial"></b></div>
+      <div>Size<b id="specSize"></b></div>
+      <div>Color/Motif Options<b id="specCount"></b></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ============================================================
+     PRODUCT DATA
+     ------------------------------------------------------------
+     Each product has its own name, sku, description, specs, and
+     its own list of color options.
+
+     FOLDER STRUCTURE
+     ------------------------------------------------------------
+     Each collection gets its own folder under images/, with two
+     subfolders — one for the big display photos, one for the
+     tightly-cropped swatch photos:
+
+       images/
+         azure-soap-dispenser/
+           main/     → full product photos (used by "img")
+           swatch/   → close-up color/motif crops (used by "swatch")
+         [next-collection-name]/
+           main/
+           swatch/
+
+     File names inside each folder should match the color name
+     (e.g. natural-oak.png) so it's easy to tell which file is
+     which just by looking at the folder — "swatch" points to
+     .../swatch/xxx.png and "img" points to .../main/xxx.png,
+     same file name, different folder.
+
+     - thumb: small image used in the product switcher list
+     - colorOptions[].name: color/motif name shown on the page
+     - colorOptions[].code: internal reference code (matches your
+       Excel tracking sheet) — shown on the page next to the color
+       name so an inquiry can be looked up directly
+     - colorOptions[].swatch: image shown inside the small round
+       swatch
+     - colorOptions[].img: full product photo shown in the big
+       stage box when that color is selected
+
+     To add a new collection: copy one whole product block below,
+     edit the values, and create a matching images/[name]/main and
+     images/[name]/swatch folder pair. To add a color to a
+     collection: add one line inside its colorOptions array.
+     ============================================================ */
+  const products = [
+    {
+      name: "Azure Soap Dispenser",
+      sku: "ABC-2024",
+      desc: "Description",
+      material: "Polyresin",
+      size: "18 x 10 cm",
+      thumb: "images/azure-soap-dispenser/main/13001_wood.png",
+      colorOptions: [
+        { name: "Wood",       code: "13001", swatch: "images/azure-soap-dispenser/swatch/13001_wood.png",       img: "images/azure-soap-dispenser/main/13001_wood.png" },
+        { name: "Chocolate",  code: "13002", swatch: "images/azure-soap-dispenser/swatch/13002_chocolate.png",  img: "images/azure-soap-dispenser/main/13002_chocolate.png" },
+        { name: "Grey Beige", code: "13003", swatch: "images/azure-soap-dispenser/swatch/13003_grey_beige.png", img: "images/azure-soap-dispenser/main/13003_grey_beige.png" },
+        { name: "Gold",       code: "13004", swatch: "images/azure-soap-dispenser/swatch/13004_gold.png",       img: "images/azure-soap-dispenser/main/13004_gold.png" },
+        { name: "Botochindo", code: "13005", swatch: "images/azure-soap-dispenser/swatch/13005_botochindo.png", img: "images/azure-soap-dispenser/main/13005_botochindo.png" },
+        { name: "Multi",      code: "13006", swatch: "images/azure-soap-dispenser/swatch/13006_multi.png",      img: "images/azure-soap-dispenser/main/13006_multi.png" },
+        { name: "Black",      code: "13007", swatch: "images/azure-soap-dispenser/swatch/13007_black.png",      img: "images/azure-soap-dispenser/main/13007_black.png" },
+        { name: "Natural",    code: "13008", swatch: "images/azure-soap-dispenser/swatch/13008_natural.png",    img: "images/azure-soap-dispenser/main/13008_natural.png" },
+        { name: "Silver",     code: "13009", swatch: "images/azure-soap-dispenser/swatch/13009_silver.png",     img: "images/azure-soap-dispenser/main/13009_silver.png" }
+      ]
+    },
+    {
+      name: "Toilet Brush Holder Azure",
+      sku: "TBHA-2024",
+      desc: "Description",
+      material: "Polyresin",
+      size: "Ø10 x 26 cm",
+      thumb: "images/toilet-brush-holder-azure/main/13001_wood.png",
+      colorOptions: [
+        { name: "Wood",       code: "13001", swatch: "images/toilet-brush-holder-azure/swatch/13001_wood.png",       img: "images/toilet-brush-holder-azure/main/13001_wood.png" },
+        { name: "Grey Beige", code: "13003", swatch: "images/toilet-brush-holder-azure/swatch/13003_grey_beige.png", img: "images/toilet-brush-holder-azure/main/13003_grey_beige.png" },
+        { name: "Gold",       code: "13004", swatch: "images/toilet-brush-holder-azure/swatch/13004_gold.png",       img: "images/toilet-brush-holder-azure/main/13004_gold.png" },
+        { name: "Botochino",  code: "13005", swatch: "images/toilet-brush-holder-azure/swatch/13005_botochino.png",  img: "images/toilet-brush-holder-azure/main/13005_botochino.png" },
+        { name: "Multi",      code: "13006", swatch: "images/toilet-brush-holder-azure/swatch/13006_multi.png",      img: "images/toilet-brush-holder-azure/main/13006_multi.png" },
+        { name: "Black",      code: "13007", swatch: "images/toilet-brush-holder-azure/swatch/13007_black.png",      img: "images/toilet-brush-holder-azure/main/13007_black.png" },
+        { name: "Natural",    code: "13008", swatch: "images/toilet-brush-holder-azure/swatch/13008_natural.png",    img: "images/toilet-brush-holder-azure/main/13008_natural.png" },
+        { name: "Silver",     code: "13009", swatch: "images/toilet-brush-holder-azure/swatch/13009_silver.png",     img: "images/toilet-brush-holder-azure/main/13009_silver.png" }
+      ]
+    },
+    {
+      name: "Arsh Soap Dispenser",
+      sku: "ARSH-2024",
+      desc: "Description",
+      material: "Polyresin",
+      size: "18 x 10 cm",
+      thumb: "images/arsh-soap-dispenser/main/12001_blue.png",
+      colorOptions: [
+        { name: "Blue",     code: "12001", swatch: "images/arsh-soap-dispenser/swatch/12001_blue.png",     img: "images/arsh-soap-dispenser/main/12001_blue.png" },
+        { name: "Ivory",    code: "12002", swatch: "images/arsh-soap-dispenser/swatch/12002_ivory.png",    img: "images/arsh-soap-dispenser/main/12002_ivory.png" },
+        { name: "Shell",    code: "12003", swatch: "images/arsh-soap-dispenser/swatch/12003_shell.png",    img: "images/arsh-soap-dispenser/main/12003_shell.png" },
+        { name: "Black",    code: "12004", swatch: "images/arsh-soap-dispenser/swatch/12004_black.png",    img: "images/arsh-soap-dispenser/main/12004_black.png" },
+        { name: "Copper",   code: "12005", swatch: "images/arsh-soap-dispenser/swatch/12005_copper.png",   img: "images/arsh-soap-dispenser/main/12005_copper.png" },
+        { name: "Silver",   code: "12006", swatch: "images/arsh-soap-dispenser/swatch/12006_silver.png",   img: "images/arsh-soap-dispenser/main/12006_silver.png" },
+        { name: "Charcoal", code: "12007", swatch: "images/arsh-soap-dispenser/swatch/12007_charcoal.png", img: "images/arsh-soap-dispenser/main/12007_charcoal.png" }
+      ]
+    },
+    {
+      name: "Prism Soap Dispenser",
+      sku: "PRISM-2024",
+      desc: "Description",
+      material: "Glass",
+      size: "18 x 10 cm",
+      thumb: "images/prism-soap-dispenser/main/1001_gold.png",
+      colorOptions: [
+        { name: "Gold",   code: "1001", swatch: "images/prism-soap-dispenser/swatch/1001_gold.png",   img: "images/prism-soap-dispenser/main/1001_gold.png" },
+        { name: "Copper", code: "1002", swatch: "images/prism-soap-dispenser/swatch/1002_copper.png", img: "images/prism-soap-dispenser/main/1002_copper.png" },
+        { name: "Teak",   code: "1003", swatch: "images/prism-soap-dispenser/swatch/1003_teak.png",   img: "images/prism-soap-dispenser/main/1003_teak.png" },
+        { name: "Silver", code: "1004", swatch: "images/prism-soap-dispenser/swatch/1004_silver.png", img: "images/prism-soap-dispenser/main/1004_silver.png" },
+        { name: "Gold",   code: "1005", swatch: "images/prism-soap-dispenser/swatch/1005_gold.png",   img: "images/prism-soap-dispenser/main/1005_gold.png" },
+        { name: "Twin",   code: "1006", swatch: "images/prism-soap-dispenser/swatch/1006_twin.png",   img: "images/prism-soap-dispenser/main/1006_twin.png" },
+        { name: "Clear",  code: "1008", swatch: "images/prism-soap-dispenser/swatch/1008_clear.png",  img: "images/prism-soap-dispenser/main/1008_clear.png" }
+      ]
+    },
+    {
+      name: "Earth Soap Dispenser",
+      sku: "EARTH-2024",
+      desc: "Description",
+      material: "Ceramic",
+      size: "18 x 10 cm",
+      thumb: "images/earth-soap-dispenser/main/7526_green.png",
+      colorOptions: [
+        { name: "Green",  code: "7526", swatch: "images/earth-soap-dispenser/swatch/7526_green.png",  img: "images/earth-soap-dispenser/main/7526_green.png" },
+        { name: "Aqua",   code: "7525", swatch: "images/earth-soap-dispenser/swatch/7525_aqua.png",   img: "images/earth-soap-dispenser/main/7525_aqua.png" },
+        { name: "White",  code: "7524", swatch: "images/earth-soap-dispenser/swatch/7524_white.png",  img: "images/earth-soap-dispenser/main/7524_white.png" },
+        { name: "Grey",   code: "7520", swatch: "images/earth-soap-dispenser/swatch/7520_grey.png",   img: "images/earth-soap-dispenser/main/7520_grey.png" },
+        { name: "Beige",  code: "7519", swatch: "images/earth-soap-dispenser/swatch/7519_beige.png",  img: "images/earth-soap-dispenser/main/7519_beige.png" },
+        { name: "Black",  code: "7522", swatch: "images/earth-soap-dispenser/swatch/7522_black.png",  img: "images/earth-soap-dispenser/main/7522_black.png" },
+        { name: "Grey",   code: "7517", swatch: "images/earth-soap-dispenser/swatch/7517_grey.png",   img: "images/earth-soap-dispenser/main/7517_grey.png" },
+        { name: "Beige",  code: "7516", swatch: "images/earth-soap-dispenser/swatch/7516_beige.png",  img: "images/earth-soap-dispenser/main/7516_beige.png" },
+        { name: "Blue",   code: "7514", swatch: "images/earth-soap-dispenser/swatch/7514_blue.png",   img: "images/earth-soap-dispenser/main/7514_blue.png" },
+        { name: "Beige",  code: "7513", swatch: "images/earth-soap-dispenser/swatch/7513_beige.png",  img: "images/earth-soap-dispenser/main/7513_beige.png" },
+        { name: "Blue",   code: "7510", swatch: "images/earth-soap-dispenser/swatch/7510_blue.png",   img: "images/earth-soap-dispenser/main/7510_blue.png" },
+        { name: "Fawn",   code: "7512", swatch: "images/earth-soap-dispenser/swatch/7512_fawn.png",   img: "images/earth-soap-dispenser/main/7512_fawn.png" },
+        { name: "Beige",  code: "7511", swatch: "images/earth-soap-dispenser/swatch/7511_beige.png",  img: "images/earth-soap-dispenser/main/7511_beige.png" }
+      ]
+    },
+    {
+      name: "Alvina Soap Dispenser",
+      sku: "ALVINA-2024",
+      desc: "Description",
+      material: "Material",
+      size: "Size",
+      thumb: "images/alvina-soap-dispenser/main/4067_marble.png",
+      colorOptions: [
+        { name: "Marble",          code: "4067", swatch: "images/alvina-soap-dispenser/swatch/4067_marble.png",          img: "images/alvina-soap-dispenser/main/4067_marble.png" },
+        { name: "Charcoal",        code: "4068", swatch: "images/alvina-soap-dispenser/swatch/4068_charcoal.png",        img: "images/alvina-soap-dispenser/main/4068_charcoal.png" },
+        { name: "Silver",          code: "4006", swatch: "images/alvina-soap-dispenser/swatch/4006_silver.png",          img: "images/alvina-soap-dispenser/main/4006_silver.png" },
+        { name: "Grey",            code: "4061", swatch: "images/alvina-soap-dispenser/swatch/4061_grey.png",            img: "images/alvina-soap-dispenser/main/4061_grey.png" },
+        { name: "Black",           code: "4009", swatch: "images/alvina-soap-dispenser/swatch/4009_black.png",           img: "images/alvina-soap-dispenser/main/4009_black.png" },
+        { name: "Grey",            code: "4015", swatch: "images/alvina-soap-dispenser/swatch/4015_grey.png",            img: "images/alvina-soap-dispenser/main/4015_grey.png" },
+        { name: "Beige Brown",     code: "4060", swatch: "images/alvina-soap-dispenser/swatch/4060_beige_brown.png",     img: "images/alvina-soap-dispenser/main/4060_beige_brown.png" },
+        { name: "Marble",          code: "4019", swatch: "images/alvina-soap-dispenser/swatch/4019_marble.png",          img: "images/alvina-soap-dispenser/main/4019_marble.png" },
+        { name: "Gold",            code: "4007", swatch: "images/alvina-soap-dispenser/swatch/4007_gold.png",            img: "images/alvina-soap-dispenser/main/4007_gold.png" },
+        { name: "Taupe",           code: "4064", swatch: "images/alvina-soap-dispenser/swatch/4064_taupe.png",           img: "images/alvina-soap-dispenser/main/4064_taupe.png" },
+        { name: "Beige Brown",     code: "",     swatch: "images/alvina-soap-dispenser/swatch/beige_brown.png",         img: "images/alvina-soap-dispenser/main/beige_brown.png" },
+        { name: "Charcoal",        code: "4004", swatch: "images/alvina-soap-dispenser/swatch/4004_charcoal.png",        img: "images/alvina-soap-dispenser/main/4004_charcoal.png" },
+        { name: "Charcoal",        code: "4064", swatch: "images/alvina-soap-dispenser/swatch/4064_charcoal.png",        img: "images/alvina-soap-dispenser/main/4064_charcoal.png" },
+        { name: "Beige",           code: "",     swatch: "images/alvina-soap-dispenser/swatch/beige.png",               img: "images/alvina-soap-dispenser/main/beige.png" },
+        { name: "Wood",            code: "4005", swatch: "images/alvina-soap-dispenser/swatch/4005_wood.png",            img: "images/alvina-soap-dispenser/main/4005_wood.png" },
+        { name: "Dark Grey",       code: "4057", swatch: "images/alvina-soap-dispenser/swatch/4057_dark_grey.png",       img: "images/alvina-soap-dispenser/main/4057_dark_grey.png" },
+        { name: "Black & White",   code: "4020", swatch: "images/alvina-soap-dispenser/swatch/4020_black_white.png",     img: "images/alvina-soap-dispenser/main/4020_black_white.png" },
+        { name: "Black",           code: "4002", swatch: "images/alvina-soap-dispenser/swatch/4002_black.png",           img: "images/alvina-soap-dispenser/main/4002_black.png" },
+        { name: "Brown",           code: "4061", swatch: "images/alvina-soap-dispenser/swatch/4061_brown.png",           img: "images/alvina-soap-dispenser/main/4061_brown.png" },
+        { name: "Blue",            code: "4021", swatch: "images/alvina-soap-dispenser/swatch/4021_blue.png",            img: "images/alvina-soap-dispenser/main/4021_blue.png" },
+        { name: "Brown",           code: "4057", swatch: "images/alvina-soap-dispenser/swatch/4057_brown.png",           img: "images/alvina-soap-dispenser/main/4057_brown.png" },
+        { name: "Charcoal",        code: "4012", swatch: "images/alvina-soap-dispenser/swatch/4012_charcoal.png",        img: "images/alvina-soap-dispenser/main/4012_charcoal.png" },
+        { name: "Dark Grey White", code: "4058", swatch: "images/alvina-soap-dispenser/swatch/4058_dark_grey_white.png", img: "images/alvina-soap-dispenser/main/4058_dark_grey_white.png" },
+        { name: "White Blue",      code: "4016", swatch: "images/alvina-soap-dispenser/swatch/4016_white_blue.png",      img: "images/alvina-soap-dispenser/main/4016_white_blue.png" },
+        { name: "Purple",          code: "4055", swatch: "images/alvina-soap-dispenser/swatch/4055_purple.png",          img: "images/alvina-soap-dispenser/main/4055_purple.png" },
+        { name: "Grey Black",      code: "4016", swatch: "images/alvina-soap-dispenser/swatch/4016_grey_black.png",      img: "images/alvina-soap-dispenser/main/4016_grey_black.png" },
+        { name: "Sandstone",       code: "4055", swatch: "images/alvina-soap-dispenser/swatch/4055_sandstone.png",       img: "images/alvina-soap-dispenser/main/4055_sandstone.png" },
+        { name: "Brown",           code: "4010", swatch: "images/alvina-soap-dispenser/swatch/4010_brown.png",           img: "images/alvina-soap-dispenser/main/4010_brown.png" },
+        { name: "Grey",            code: "4055", swatch: "images/alvina-soap-dispenser/swatch/4055_grey.png",            img: "images/alvina-soap-dispenser/main/4055_grey.png" },
+        { name: "Brown",           code: "4016", swatch: "images/alvina-soap-dispenser/swatch/4016_brown.png",           img: "images/alvina-soap-dispenser/main/4016_brown.png" },
+        { name: "Teal Green",      code: "4068", swatch: "images/alvina-soap-dispenser/swatch/4068_teal_green.png",      img: "images/alvina-soap-dispenser/main/4068_teal_green.png" },
+        { name: "Cheery",          code: "4013", swatch: "images/alvina-soap-dispenser/swatch/4013_cheery.png",          img: "images/alvina-soap-dispenser/main/4013_cheery.png" },
+        { name: "Beige",           code: "4068", swatch: "images/alvina-soap-dispenser/swatch/4068_beige.png",           img: "images/alvina-soap-dispenser/main/4068_beige.png" },
+        { name: "Concrete",        code: "4008", swatch: "images/alvina-soap-dispenser/swatch/4008_concrete.png",        img: "images/alvina-soap-dispenser/main/4008_concrete.png" }
+      ]
+    },
+    {
+      name: "Vibe Soap Dispenser",
+      sku: "VIBE-2024",
+      desc: "Description",
+      material: "Material",
+      size: "Size",
+      thumb: "images/vibe-soap-dispenser/main/14003_beige.png",
+      colorOptions: [
+        { name: "Beige",          code: "14003", swatch: "images/vibe-soap-dispenser/swatch/14003_beige.png",          img: "images/vibe-soap-dispenser/main/14003_beige.png" },
+        { name: "Gold",           code: "14002", swatch: "images/vibe-soap-dispenser/swatch/14002_gold.png",           img: "images/vibe-soap-dispenser/main/14002_gold.png" },
+        { name: "Sandstone",      code: "14001", swatch: "images/vibe-soap-dispenser/swatch/14001_sandstone.png",      img: "images/vibe-soap-dispenser/main/14001_sandstone.png" },
+        { name: "Sandstone",      code: "4071",  swatch: "images/vibe-soap-dispenser/swatch/4071_sandstone.png",       img: "images/vibe-soap-dispenser/main/4071_sandstone.png" },
+        { name: "Brown Orange",   code: "4070",  swatch: "images/vibe-soap-dispenser/swatch/4070_brown_orange.png",    img: "images/vibe-soap-dispenser/main/4070_brown_orange.png" },
+        { name: "Grey",           code: "4069",  swatch: "images/vibe-soap-dispenser/swatch/4069_grey.png",            img: "images/vibe-soap-dispenser/main/4069_grey.png" },
+        { name: "Brown",          code: "4069",  swatch: "images/vibe-soap-dispenser/swatch/4069_brown.png",           img: "images/vibe-soap-dispenser/main/4069_brown.png" },
+        { name: "Wood",           code: "4065",  swatch: "images/vibe-soap-dispenser/swatch/4065_wood.png",            img: "images/vibe-soap-dispenser/main/4065_wood.png" },
+        { name: "Black",          code: "4059",  swatch: "images/vibe-soap-dispenser/swatch/4059_black.png",           img: "images/vibe-soap-dispenser/main/4059_black.png" },
+        { name: "Taupe",          code: "4063",  swatch: "images/vibe-soap-dispenser/swatch/4063_taupe.png",           img: "images/vibe-soap-dispenser/main/4063_taupe.png" },
+        { name: "Breige Brown",   code: "4062",  swatch: "images/vibe-soap-dispenser/swatch/4062_breige_brown.png",    img: "images/vibe-soap-dispenser/main/4062_breige_brown.png" },
+        { name: "Charcoal",       code: "4052",  swatch: "images/vibe-soap-dispenser/swatch/4052_charcoal.png",        img: "images/vibe-soap-dispenser/main/4052_charcoal.png" },
+        { name: "White Taupe",    code: "4054",  swatch: "images/vibe-soap-dispenser/swatch/4054_white_taupe.png",     img: "images/vibe-soap-dispenser/main/4054_white_taupe.png" },
+        { name: "White Gray",     code: "4054",  swatch: "images/vibe-soap-dispenser/swatch/4054_white_gray.png",      img: "images/vibe-soap-dispenser/main/4054_white_gray.png" },
+        { name: "White Black",    code: "4056",  swatch: "images/vibe-soap-dispenser/swatch/4056_white_black.png",     img: "images/vibe-soap-dispenser/main/4056_white_black.png" },
+        { name: "Charcoal",       code: "5051",  swatch: "images/vibe-soap-dispenser/swatch/5051_charcoal.png",        img: "images/vibe-soap-dispenser/main/5051_charcoal.png" },
+        { name: "Black White",    code: "4051",  swatch: "images/vibe-soap-dispenser/swatch/4051_black_white.png",     img: "images/vibe-soap-dispenser/main/4051_black_white.png" }
+      ]
+    },
+    {
+      name: "Toilet Brush Holder",
+      sku: "TBH-2024",
+      desc: "Description",
+      material: "Polyresin",
+      size: "Ø10 x 26 cm",
+      thumb: "https://placehold.co/100x100/F4F4F4/111111?text=Brush",
+      colorOptions: [
+        { name: "Marble Black",      swatch: "#1c1a18", img: "https://placehold.co/600x600/1c1a18/FFFFFF?text=Black" },
+        { name: "Marble Cream",      swatch: "#e8ddc4", img: "https://placehold.co/600x600/e8ddc4/111111?text=Cream" },
+        { name: "Marble Grey",       swatch: "#8f8f8f", img: "https://placehold.co/600x600/8f8f8f/111111?text=Grey" },
+        { name: "Marble Green",      swatch: "#93a597", img: "https://placehold.co/600x600/93a597/111111?text=Green" },
+        { name: "Marble Gold Swirl", swatch: "#7a5a2e", img: "https://placehold.co/600x600/7a5a2e/FFFFFF?text=Gold+Swirl" }
+      ]
+    },
+    {
+      name: "Towel Tray",
+      sku: "TWT-2024",
+      desc: "Description",
+      material: "Lacquered wood",
+      size: "30 x 16 x 4 cm",
+      thumb: "https://placehold.co/100x100/F4F4F4/111111?text=Tray",
+      colorOptions: [
+        { name: "Espresso",   swatch: "#3b332c", img: "https://placehold.co/600x600/3b332c/FFFFFF?text=Espresso" },
+        { name: "White Vine", swatch: "#efece4", img: "https://placehold.co/600x600/efece4/111111?text=White+Vine" }
+      ]
+    },
+    {
+      name: "Ceramic Bath Set",
+      sku: "CBS-2024",
+      desc: "Description",
+      material: "Ceramic",
+      size: "Set of 4",
+      thumb: "https://placehold.co/100x100/F4F4F4/111111?text=Ceramic",
+      colorOptions: [
+        { name: "Slate Blue", swatch: "#5c7686", img: "https://placehold.co/600x600/5c7686/FFFFFF?text=Slate+Blue" },
+        { name: "Teal",       swatch: "#4a7a76", img: "https://placehold.co/600x600/4a7a76/FFFFFF?text=Teal" }
+      ]
+    },
+    {
+      name: "Marble Bath Set",
+      sku: "MBS-2024",
+      desc: "Description",
+      material: "Polyresin",
+      size: "Set of 5",
+      thumb: "https://placehold.co/100x100/F4F4F4/111111?text=Marble+Set",
+      colorOptions: [
+        { name: "Onyx Black",  swatch: "#151515", img: "https://placehold.co/600x600/151515/FFFFFF?text=Onyx+Black" },
+        { name: "Bronze Vein", swatch: "#6b4a2e", img: "https://placehold.co/600x600/6b4a2e/FFFFFF?text=Bronze+Vein" }
+      ]
+    }
+  ];
+
+  let currentProductIndex = 0;
+  let currentColorIndex = 0;
+
+  const productSwitcher   = document.getElementById('productSwitcher');
+  const switcherTrigger   = document.getElementById('switcherTrigger');
+  const switcherPanel     = document.getElementById('switcherPanel');
+  const switcherThumb     = document.getElementById('switcherThumb');
+  const switcherName      = document.getElementById('switcherName');
+
+  const crumbName         = document.getElementById('crumbName');
+  const productName       = document.getElementById('productName');
+  const productDesc       = document.getElementById('productDesc');
+  const specMaterial      = document.getElementById('specMaterial');
+  const specSize          = document.getElementById('specSize');
+  const specCount         = document.getElementById('specCount');
+
+  const swatchContainer   = document.getElementById('swatchContainer');
+  const productImage      = document.getElementById('productImage');
+  const stageLabel        = document.getElementById('stageLabel');
+  const stageCode         = document.getElementById('stageCode');
+  const currentColorName  = document.getElementById('currentColorName');
+  const currentColorCode  = document.getElementById('currentColorCode');
+
+  function isUrl(str){
+    // Anything that isn't a plain hex color (#fff, #a9822f, etc.) is
+    // treated as an image path — this covers http(s) links, data URIs,
+    // and relative/local folder paths like "images/.../swatch/x.png".
+    return !/^#[0-9a-fA-F]{3,8}$/.test(str.trim());
+  }
+
+  function renderSwitcherPanel(){
+    switcherPanel.innerHTML = '';
+    products.forEach((p, i) => {
+      const item = document.createElement('div');
+      item.className = 'switcher-item' + (i === currentProductIndex ? ' active' : '');
+      item.innerHTML = `
+        <img src="${p.thumb}" alt="${p.name}">
+        <div>
+          <div class="switcher-item-name">${p.name}</div>
+          <div class="switcher-item-count">${p.colorOptions.length} color/motif options</div>
+        </div>
+      `;
+      item.addEventListener('click', () => {
+        loadProduct(i);
+        productSwitcher.classList.remove('open');
+      });
+      switcherPanel.appendChild(item);
+    });
+  }
+
+  function renderSwatches(){
+    const colorOptions = products[currentProductIndex].colorOptions;
+    swatchContainer.innerHTML = '';
+    colorOptions.forEach((opt, i) => {
+      const el = document.createElement('div');
+      el.className = 'swatch' + (i === currentColorIndex ? ' active' : '');
+      if(isUrl(opt.swatch)){
+        el.style.backgroundImage = `url(${opt.swatch})`;
+      } else {
+        el.style.background = opt.swatch;
+      }
+      el.title = opt.code ? `${opt.name} — ${opt.code}` : opt.name;
+      el.addEventListener('click', () => selectColor(i));
+      swatchContainer.appendChild(el);
+    });
+  }
+
+  function selectColor(index){
+    currentColorIndex = index;
+    const opt = products[currentProductIndex].colorOptions[index];
+
+    document.querySelectorAll('.swatch').forEach((s, i) => s.classList.toggle('active', i === index));
+
+    productImage.classList.add('swap');
+    setTimeout(() => {
+      productImage.src = opt.img;
+      productImage.alt = opt.name;
+      productImage.classList.remove('swap');
+    }, 120);
+
+    stageLabel.textContent = opt.code ? `${opt.name} — ${opt.code}` : opt.name;
+    currentColorName.textContent = opt.name;
+    currentColorCode.textContent = opt.code || "—";
+    stageCode.textContent = String(index + 1).padStart(2, '0') + " / " + String(products[currentProductIndex].colorOptions.length).padStart(2, '0');
+  }
+
+  function loadProduct(index){
+    currentProductIndex = index;
+    currentColorIndex = 0;
+    const p = products[index];
+
+    switcherThumb.src = p.thumb;
+    switcherThumb.alt = p.name;
+    switcherName.textContent = p.name;
+
+    crumbName.textContent = "/ " + p.name;
+    productName.textContent = p.name;
+    productDesc.textContent = p.desc;
+    specMaterial.textContent = p.material;
+    specSize.textContent = p.size;
+    specCount.textContent = p.colorOptions.length;
+
+    renderSwitcherPanel();
+    renderSwatches();
+    selectColor(0);
+  }
+
+  switcherTrigger.addEventListener('click', () => {
+    productSwitcher.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if(!productSwitcher.contains(e.target)){
+      productSwitcher.classList.remove('open');
+    }
+  });
+
+  loadProduct(0);
+</script>
+
+</body>
+</html>
